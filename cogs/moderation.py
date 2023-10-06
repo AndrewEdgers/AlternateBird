@@ -5,6 +5,9 @@ Description:
 
 Version: 6.1.0
 """
+import json
+import os
+import sys
 
 import os
 from datetime import datetime
@@ -14,6 +17,11 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 
+if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
+    sys.exit("'config.json' not found! Please add it and try again.")
+else:
+    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
+        config = json.load(file)
 
 class Moderation(commands.Cog, name="moderation"):
     def __init__(self, bot) -> None:
@@ -51,7 +59,7 @@ class Moderation(commands.Cog, name="moderation"):
             try:
                 embed = discord.Embed(
                     description=f"**{member}** was kicked by **{context.author}**!",
-                    color=0xBEBEFE,
+                    color=discord.Color.from_str(config["color"]),
                 )
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -97,7 +105,7 @@ class Moderation(commands.Cog, name="moderation"):
             await member.edit(nick=nickname)
             embed = discord.Embed(
                 description=f"**{member}'s** new nickname is **{nickname}**!",
-                color=0xBEBEFE,
+                color=discord.Color.from_str(config["color"]),
             )
             await context.send(embed=embed)
         except:
@@ -139,7 +147,7 @@ class Moderation(commands.Cog, name="moderation"):
             else:
                 embed = discord.Embed(
                     description=f"**{member}** was banned by **{context.author}**!",
-                    color=0xBEBEFE,
+                    color=discord.Color.from_str(config["color"]),
                 )
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -204,7 +212,7 @@ class Moderation(commands.Cog, name="moderation"):
         )
         embed = discord.Embed(
             description=f"**{member}** was warned by **{context.author}**!\nTotal warns for this user: {total}",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         embed.add_field(name="Reason:", value=reason)
         await context.send(embed=embed)
@@ -243,7 +251,7 @@ class Moderation(commands.Cog, name="moderation"):
         total = await self.bot.database.remove_warn(warn_id, user.id, context.guild.id)
         embed = discord.Embed(
             description=f"I've removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total}",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         await context.send(embed=embed)
 
@@ -261,7 +269,7 @@ class Moderation(commands.Cog, name="moderation"):
         :param user: The user you want to get the warnings of.
         """
         warnings_list = await self.bot.database.get_warnings(user.id, context.guild.id)
-        embed = discord.Embed(title=f"Warnings of {user}", color=0xBEBEFE)
+        embed = discord.Embed(title=f"Warnings of {user}", color=discord.Color.from_str(config["color"]))
         description = ""
         if len(warnings_list) == 0:
             description = "This user has no warnings."
@@ -291,7 +299,7 @@ class Moderation(commands.Cog, name="moderation"):
         purged_messages = await context.channel.purge(limit=amount + 1)
         embed = discord.Embed(
             description=f"**{context.author}** cleared **{len(purged_messages)-1}** messages!",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         await context.channel.send(embed=embed)
 
@@ -322,7 +330,7 @@ class Moderation(commands.Cog, name="moderation"):
             )
             embed = discord.Embed(
                 description=f"**{user}** (ID: {user_id}) was banned by **{context.author}**!",
-                color=0xBEBEFE,
+                color=discord.Color.from_str(config["color"]),
             )
             embed.add_field(name="Reason:", value=reason)
             await context.send(embed=embed)

@@ -1,4 +1,4 @@
-# Python Discord Bot Template
+# Python Discord Bot Roster
 
 <p align="center">
   <a href="https://discord.gg/mTBrXyWxAF"><img src="https://img.shields.io/discord/739934735387721768?logo=discord"></a>
@@ -89,7 +89,7 @@ Here is an explanation of what everything is:
 
 ### `.env` file
 
-To set up the token you will have to either make use of the [`.env.example`](.env.example) file, either copy or rename it to `.env` and replace `YOUR_BOT_TOKEN_HERE` with your bot's token.
+To set up the token you will have to either make use of the [`.env.example`](.env) file, either copy or rename it to `.env` and replace `YOUR_BOT_TOKEN_HERE` with your bot's token.
 
 Alternatively you can simply create an environment variable named `TOKEN`.
 

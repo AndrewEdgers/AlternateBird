@@ -5,6 +5,9 @@ Description:
 
 Version: 6.1.0
 """
+import json
+import os
+import sys
 
 import platform
 import random
@@ -14,6 +17,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
+
+if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
+    sys.exit("'config.json' not found! Please add it and try again.")
+else:
+    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
+        config = json.load(file)
 
 
 class General(commands.Cog, name="general"):
@@ -30,7 +39,7 @@ class General(commands.Cog, name="general"):
 
     # Message context menu command
     async def remove_spoilers(
-        self, interaction: discord.Interaction, message: discord.Message
+            self, interaction: discord.Interaction, message: discord.Message
     ) -> None:
         """
         Removes the spoilers from the message. This command requires the MESSAGE_CONTENT intent to work properly.
@@ -46,7 +55,7 @@ class General(commands.Cog, name="general"):
         embed = discord.Embed(
             title="Message without spoilers",
             description=message.content.replace("||", ""),
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         if spoiler_attachment is not None:
             embed.set_image(url=attachment.url)
@@ -54,7 +63,7 @@ class General(commands.Cog, name="general"):
 
     # User context menu command
     async def grab_id(
-        self, interaction: discord.Interaction, user: discord.User
+            self, interaction: discord.Interaction, user: discord.User
     ) -> None:
         """
         Grabs the ID of the user.
@@ -64,7 +73,7 @@ class General(commands.Cog, name="general"):
         """
         embed = discord.Embed(
             description=f"The ID of {user.mention} is `{user.id}`.",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -74,7 +83,7 @@ class General(commands.Cog, name="general"):
     async def help(self, context: Context) -> None:
         prefix = self.bot.config["prefix"]
         embed = discord.Embed(
-            title="Help", description="List of available commands:", color=0xBEBEFE
+            title="Help", description="List of available commands:", color=discord.Color.from_str(config["color"])
         )
         for i in self.bot.cogs:
             if i == "owner" and not (await self.bot.is_owner(context.author)):
@@ -89,7 +98,7 @@ class General(commands.Cog, name="general"):
             embed.add_field(
                 name=i.capitalize(), value=f"```{help_text}```", inline=False
             )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="botinfo",
@@ -103,10 +112,10 @@ class General(commands.Cog, name="general"):
         """
         embed = discord.Embed(
             description="Used [Krypton's](https://krypton.ninja) template",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         embed.set_author(name="Bot Information")
-        embed.add_field(name="Owner:", value="Krypton#7331", inline=True)
+        embed.add_field(name="Owner:", value="edgers1", inline=True)
         embed.add_field(
             name="Python Version:", value=f"{platform.python_version()}", inline=True
         )
@@ -116,7 +125,7 @@ class General(commands.Cog, name="general"):
             inline=False,
         )
         embed.set_footer(text=f"Requested by {context.author}")
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="serverinfo",
@@ -131,22 +140,23 @@ class General(commands.Cog, name="general"):
         roles = [role.name for role in context.guild.roles]
         if len(roles) > 50:
             roles = roles[:50]
-            roles.append(f">>>> Displayin [50/{len(roles)}] Roles")
+            roles.append(f"\n>>>> Displaying [50/{len(roles)}] Roles")
         roles = ", ".join(roles)
 
         embed = discord.Embed(
-            title="**Server Name:**", description=f"{context.guild}", color=0xBEBEFE
+            title="**Server Name:**", description=f"{context.guild} <:Alternate:1053103469172625499>",
+            color=discord.Color.from_str(config["color"])
         )
         if context.guild.icon is not None:
             embed.set_thumbnail(url=context.guild.icon.url)
-        embed.add_field(name="Server ID", value=context.guild.id)
+        embed.add_field(name="Server ID", value=f'{context.guild.id} ')
         embed.add_field(name="Member Count", value=context.guild.member_count)
         embed.add_field(
             name="Text/Voice Channels", value=f"{len(context.guild.channels)}"
         )
         embed.add_field(name=f"Roles ({len(context.guild.roles)})", value=roles)
         embed.set_footer(text=f"Created at: {context.guild.created_at}")
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="ping",
@@ -161,123 +171,51 @@ class General(commands.Cog, name="general"):
         embed = discord.Embed(
             title="🏓 Pong!",
             description=f"The bot latency is {round(self.bot.latency * 1000)}ms.",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
-    @commands.hybrid_command(
-        name="invite",
-        description="Get the invite link of the bot to be able to invite it.",
-    )
-    async def invite(self, context: Context) -> None:
-        """
-        Get the invite link of the bot to be able to invite it.
+    # @commands.hybrid_command(
+    #     name="invite",
+    #     description="Get the invite link of the bot to be able to invite it.",
+    # )
+    # async def invite(self, context: Context) -> None:
+    #     """
+    #     Get the invite link of the bot to be able to invite it.
 
-        :param context: The hybrid command context.
-        """
-        embed = discord.Embed(
-            description=f"Invite me by clicking [here]({self.bot.config['invite_link']}).",
-            color=0xD75BF4,
-        )
-        try:
-            await context.author.send(embed=embed)
-            await context.send("I sent you a private message!")
-        except discord.Forbidden:
-            await context.send(embed=embed)
 
-    @commands.hybrid_command(
-        name="server",
-        description="Get the invite link of the discord server of the bot for some support.",
-    )
-    async def server(self, context: Context) -> None:
-        """
-        Get the invite link of the discord server of the bot for some support.
+#
+#     :param context: The hybrid command context.
+#     """
+#     embed = discord.Embed(
+#         description=f"Invite me by clicking [here]({self.bot.config['invite_link']}).",
+#         color=0xD75BF4,
+#     )
+#     try:
+#         await context.author.send(embed=embed)
+#         await context.send("I sent you a private message!")
+#     except discord.Forbidden:
+#         await context.send(embed=embed)
 
-        :param context: The hybrid command context.
-        """
-        embed = discord.Embed(
-            description=f"Join the support server for the bot by clicking [here](https://discord.gg/mTBrXyWxAF).",
-            color=0xD75BF4,
-        )
-        try:
-            await context.author.send(embed=embed)
-            await context.send("I sent you a private message!")
-        except discord.Forbidden:
-            await context.send(embed=embed)
-
-    @commands.hybrid_command(
-        name="8ball",
-        description="Ask any question to the bot.",
-    )
-    @app_commands.describe(question="The question you want to ask.")
-    async def eight_ball(self, context: Context, *, question: str) -> None:
-        """
-        Ask any question to the bot.
-
-        :param context: The hybrid command context.
-        :param question: The question that should be asked by the user.
-        """
-        answers = [
-            "It is certain.",
-            "It is decidedly so.",
-            "You may rely on it.",
-            "Without a doubt.",
-            "Yes - definitely.",
-            "As I see, yes.",
-            "Most likely.",
-            "Outlook good.",
-            "Yes.",
-            "Signs point to yes.",
-            "Reply hazy, try again.",
-            "Ask again later.",
-            "Better not tell you now.",
-            "Cannot predict now.",
-            "Concentrate and ask again later.",
-            "Don't count on it.",
-            "My reply is no.",
-            "My sources say no.",
-            "Outlook not so good.",
-            "Very doubtful.",
-        ]
-        embed = discord.Embed(
-            title="**My Answer:**",
-            description=f"{random.choice(answers)}",
-            color=0xBEBEFE,
-        )
-        embed.set_footer(text=f"The question was: {question}")
-        await context.send(embed=embed)
-
-    @commands.hybrid_command(
-        name="bitcoin",
-        description="Get the current price of bitcoin.",
-    )
-    async def bitcoin(self, context: Context) -> None:
-        """
-        Get the current price of bitcoin.
-
-        :param context: The hybrid command context.
-        """
-        # This will prevent your bot from stopping everything when doing a web request - see: https://discordpy.readthedocs.io/en/stable/faq.html#how-do-i-make-a-web-request
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                "https://api.coindesk.com/v1/bpi/currentprice/BTC.json"
-            ) as request:
-                if request.status == 200:
-                    data = await request.json(
-                        content_type="application/javascript"
-                    )  # For some reason the returned content is of type JavaScript
-                    embed = discord.Embed(
-                        title="Bitcoin price",
-                        description=f"The current price is {data['bpi']['USD']['rate']} :dollar:",
-                        color=0xBEBEFE,
-                    )
-                else:
-                    embed = discord.Embed(
-                        title="Error!",
-                        description="There is something wrong with the API, please try again later",
-                        color=0xE02B2B,
-                    )
-                await context.send(embed=embed)
+# @commands.hybrid_command(
+#     name="server",
+#     description="Get the invite link of the discord server of the bot for some support.",
+# )
+# async def server(self, context: Context) -> None:
+#     """
+#     Get the invite link of the discord server of the bot for some support.
+#
+#     :param context: The hybrid command context.
+#     """
+#     embed = discord.Embed(
+#         description=f"Join the support server for the bot by clicking [here](https://discord.gg/mTBrXyWxAF).",
+#         color=0xD75BF4,
+#     )
+#     try:
+#         await context.author.send(embed=embed)
+#         await context.send("I sent you a private message!")
+#     except discord.Forbidden:
+#         await context.send(embed=embed)
 
 
 async def setup(bot) -> None:

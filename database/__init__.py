@@ -6,7 +6,6 @@ Description:
 Version: 6.1.0
 """
 
-
 import aiosqlite
 
 
@@ -15,7 +14,7 @@ class DatabaseManager:
         self.connection = connection
 
     async def add_warn(
-        self, user_id: int, server_id: int, moderator_id: int, reason: str
+            self, user_id: int, server_id: int, moderator_id: int, reason: str
     ) -> int:
         """
         This function will add a warn to the database.
@@ -95,3 +94,106 @@ class DatabaseManager:
             for row in result:
                 result_list.append(row)
             return result_list
+
+    async def create_team(self, team_name: str, color: str, banner: str, rank: str = None):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute(
+                "INSERT INTO teams (team_name, color, banner, rank) VALUES (?, ?, ?, ?)",
+                (team_name, color, banner, rank)
+            )
+            await self.connection.commit()
+
+    async def delete_team(self, team_name: str):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("DELETE FROM teams WHERE team_name = ?", (team_name,))
+            await self.connection.commit()
+
+    async def edit_team(self, team_name: str, new_name: str = None, color: str = None, banner: str = None,
+                        rank: str = None):
+        async with self.connection.cursor() as cursor:
+            fields = []
+            values = []
+
+            if new_name is not None:
+                fields.append("team_name = ?")
+                values.append("Alternate" + new_name)
+            if color is not None:
+                fields.append("color = ?")
+                values.append(color)
+            if banner is not None:
+                fields.append("banner = ?")
+                values.append(banner)
+            if rank is not None:
+                fields.append("rank = ?")
+                values.append(rank)
+
+            if not fields:
+                return  # No changes, so no need to update the database
+
+            query = f"UPDATE teams SET {', '.join(fields)} WHERE team_name = ?"
+            values.append(team_name)
+
+            await cursor.execute(query, values)
+            await self.connection.commit()
+
+    async def update_team_banner(self, team_name: str, new_banner_path: str):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute(
+                "UPDATE teams SET banner = ? WHERE team_name = ?",
+                (new_banner_path, team_name)
+            )
+            await self.connection.commit()
+
+    async def get_team(self, team_name: str):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT * FROM teams WHERE team_name = ?", (team_name,))
+            return await cursor.fetchone()
+
+    async def get_teams(self):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT * FROM teams")
+            return await cursor.fetchall()
+
+    async def add_player(self, player_id: int, team_name: str, role: str):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute(
+                "INSERT INTO players (player_id, team_name, role) VALUES (?, ?, ?)",
+                (player_id, team_name, role)
+            )
+            await self.connection.commit()
+
+    async def delete_player(self, player_id: int):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("DELETE FROM players WHERE player_id = ?", (player_id,))
+            await self.connection.commit()
+
+    async def edit_player(self, player_id: int, team_name: str = None, role: str = None):
+        async with self.connection.cursor() as cursor:
+            fields = []
+            values = []
+
+            if team_name is not None:
+                fields.append("team_name = ?")
+                values.append(team_name)
+            if role is not None:
+                fields.append("role = ?")
+                values.append(role)
+
+            if not fields:
+                return
+
+            query = f"UPDATE players SET {', '.join(fields)} WHERE player_id = ?"
+            values.append(player_id)
+
+            await cursor.execute(query, values)
+            await self.connection.commit()
+
+    async def get_player(self, player_id: int):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT * FROM players WHERE player_id = ?", (player_id,))
+            return await cursor.fetchone()
+
+    async def get_players(self, team_name: str):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT * FROM players WHERE team_name = ?", (team_name,))
+            return await cursor.fetchall()

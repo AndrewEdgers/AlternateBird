@@ -1,4 +1,26 @@
 {
-  "prefix": "YOUR_BOT_PREFIX_HERE",
-  "invite_link": "YOUR_BOT_INVITE_LINK_HERE"
+  "prefix": "!",
+  "invite_link": " https://discord.com/oauth2/authorize?&client_id=1081992472781148331&scope=bot+applications.commands&permissions=8",
+  "color": "0x114b5f",
+  "owners": [
+    224585378911354880,
+    713250155016749069,
+    297783686554714112
+  ],
+  "guild_id": "801899635345195039",
+  "statuses": [
+    "Trying not to C9",
+    "Capturing the point",
+    "Defending the point",
+    "Contesting the point",
+    "Moving the payload",
+    "Overwatch 2",
+    "Nerfing D.VA",
+    "Waiting for the rank update",
+    "Waiting for the next hero",
+    "Waiting for the next map",
+    "Remembering OWL >_<"
+  ],
+  "sync_commands_globally": true,
+  "disabled_cogs": ["template", "fun", "moderation"]
 }

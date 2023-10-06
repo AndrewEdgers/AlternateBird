@@ -5,7 +5,7 @@ Description:
 
 Version: 6.1.0
 """
-
+import asyncio
 import json
 import logging
 import os
@@ -60,7 +60,10 @@ intents.message_content = True
 intents.presences = True
 """
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
+intents.members = True
+intents.message_content = True
+intents.presences = True
 
 """
 Uncomment this if you want to use prefix (normal) commands.
@@ -68,11 +71,9 @@ It is recommended to use slash commands and therefore not use prefix commands.
 
 If you want to use prefix commands, make sure to also enable the intent below in the Discord developer portal.
 """
-# intents.message_content = True
+
 
 # Setup both of the loggers
-
-
 class LoggingFormatter(logging.Formatter):
     # Colors
     black = "\x1b[30m"
@@ -143,10 +144,10 @@ class DiscordBot(commands.Bot):
 
     async def init_db(self) -> None:
         async with aiosqlite.connect(
-            f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
+                f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
         ) as db:
             with open(
-                f"{os.path.realpath(os.path.dirname(__file__))}/database/schema.sql"
+                    f"{os.path.realpath(os.path.dirname(__file__))}/database/schema.sql"
             ) as file:
                 await db.executescript(file.read())
             await db.commit()
@@ -156,7 +157,7 @@ class DiscordBot(commands.Bot):
         The code in this function is executed whenever the bot will start.
         """
         for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/cogs"):
-            if file.endswith(".py"):
+            if file.endswith(".py") and file[:-3] not in config["disabled_cogs"]:
                 extension = file[:-3]
                 try:
                     await self.load_extension(f"cogs.{extension}")
@@ -172,7 +173,7 @@ class DiscordBot(commands.Bot):
         """
         Setup the game status task of the bot.
         """
-        statuses = ["with you!", "with Krypton!", "with humans!"]
+        statuses = config["statuses"]
         await self.change_presence(activity=discord.Game(random.choice(statuses)))
 
     @status_task.before_loop
@@ -201,6 +202,10 @@ class DiscordBot(commands.Bot):
                 f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
             )
         )
+        if config["sync_commands_globally"]:
+            self.logger.info("Syncing commands globally...")
+            await bot.tree.sync()
+            self.logger.info("Done!")
 
     async def on_message(self, message: discord.Message) -> None:
         """
@@ -229,6 +234,20 @@ class DiscordBot(commands.Bot):
             self.logger.info(
                 f"Executed {executed_command} command by {context.author} (ID: {context.author.id}) in DMs"
             )
+
+    # on channel create check if name starts with ┇ and if not rename it
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
+        """
+        The code in this event is executed every time a channel is created.
+
+        :param channel: The channel that was created.
+        """
+        if channel.name.startswith("┇"):
+            return
+        else:
+            # wait for the channel to be created
+            await asyncio.sleep(1)
+            await channel.edit(name=f"┇{channel.name}")
 
     async def on_command_error(self, context: Context, error) -> None:
         """
@@ -262,16 +281,16 @@ class DiscordBot(commands.Bot):
         elif isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 description="You are missing the permission(s) `"
-                + ", ".join(error.missing_permissions)
-                + "` to execute this command!",
+                            + ", ".join(error.missing_permissions)
+                            + "` to execute this command!",
                 color=0xE02B2B,
             )
             await context.send(embed=embed)
         elif isinstance(error, commands.BotMissingPermissions):
             embed = discord.Embed(
                 description="I am missing the permission(s) `"
-                + ", ".join(error.missing_permissions)
-                + "` to fully perform this command!",
+                            + ", ".join(error.missing_permissions)
+                            + "` to fully perform this command!",
                 color=0xE02B2B,
             )
             await context.send(embed=embed)

