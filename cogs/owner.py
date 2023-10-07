@@ -335,6 +335,19 @@ class Owner(commands.Cog, name="owner"):
         )
         await context.send(embed=embed, ephemeral=True)
 
+    @commands.hybrid_command(
+        name="db",
+        description="Sends the database file.",
+    )
+    @commands.is_owner()
+    async def db(self, context: Context) -> None:
+        """
+        Sends the database file.
+
+        :param context: The hybrid command context.
+        """
+        await context.send(file=discord.File("database/database.db"), ephemeral=True)
+
     '''
     @commands.hybrid_group(
         name="servers",

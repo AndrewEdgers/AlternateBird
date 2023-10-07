@@ -20,7 +20,6 @@ import traceback
 from typing import List, Dict
 from collections import defaultdict
 
-
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
 else:
@@ -83,6 +82,16 @@ class ConfirmView(discord.ui.View):
 class Roster(commands.Cog, name="rosters"):
     def __init__(self, bot) -> None:
         self.bot = bot
+
+    def standardize_team_name(self, team_name: str) -> str:
+        words = team_name.split()
+        capitalized_words = [word.capitalize() for word in words]
+        capitalized_team_name = ' '.join(capitalized_words)
+
+        if not capitalized_team_name.startswith("Alternate "):
+            return f"Alternate {capitalized_team_name}"
+
+        return capitalized_team_name
 
     def get_coaches_embed(self, context: Context):
         head_coaches = []
@@ -215,7 +224,7 @@ class Roster(commands.Cog, name="rosters"):
             manager_names = "\n".join([f"{member.mention} - {member.name}" for member in managers])
             manager_description_str += f"**{team} Manager**\n{manager_names}\n"
 
-        manager_description_str += "<:manager:1159872594502242375> Managers:"
+        manager_description_str += "\n**<:manager:1159872594502242375> Managers**"
 
         # Create the manager embed
         manager_embed = discord.Embed(
@@ -446,11 +455,7 @@ class Roster(commands.Cog, name="rosters"):
         :param color: The color of the team to create.
         :param rank: The rank of the team to create.
         """
-        name = name.capitalize()
-        if name.startswith("Alternate "):
-            name = name
-        else:
-            name = "Alternate " + name
+        name = self.standardize_team_name(name)
 
         if await self.bot.database.get_team(name):
             embed = discord.Embed(
@@ -518,11 +523,7 @@ class Roster(commands.Cog, name="rosters"):
         :param new_banner: The new banner for the team.
         :param new_rank: The new rank for the team.
         """
-        name = name.capitalize()
-        if name.startswith("Alternate "):
-            name = name
-        else:
-            name = "Alternate " + name
+        name = self.standardize_team_name(name)
 
         existing_team = await self.bot.database.get_team(name)
         if not existing_team:
@@ -587,12 +588,7 @@ class Roster(commands.Cog, name="rosters"):
         :param context: The hybrid command context.
         :param name: The name of the team to delete.
         """
-        # Check if the team exists
-        name = name.capitalize()
-        if name.startswith("Alternate "):
-            name = name
-        else:
-            name = "Alternate " + name
+        name = self.standardize_team_name(name)
 
         confirm_view = ConfirmView(name)
         existing_team = await self.bot.database.get_team(name)
@@ -634,7 +630,7 @@ class Roster(commands.Cog, name="rosters"):
         name="player",
         description="Lists, sign, release and edit Alternate eSports players.",
     )
-    @commands.bot_has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
     async def player(self, context: Context) -> None:
         """
         Lists, sign, release and edit Alternate eSports players.
@@ -656,7 +652,7 @@ class Roster(commands.Cog, name="rosters"):
         name="roster",
         description="Shows team roster.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
+    @commands.is_owner()
     async def player_roster(self, context: Context, team: str) -> None:
         """
         List all Alternate eSports players.
@@ -665,11 +661,8 @@ class Roster(commands.Cog, name="rosters"):
         :param context: The hybrid command context.
         :param team: The team to list the players for.
         """
-        team = team.capitalize()
-        if team.startswith("Alternate "):
-            team = team
-        else:
-            team = "Alternate " + team
+        team = self.standardize_team_name(team)
+
         # Check if the team exists
         if not await self.bot.database.get_team(team):
             embed = discord.Embed(
@@ -700,7 +693,7 @@ class Roster(commands.Cog, name="rosters"):
         description="Updates the roster message.",
     )
     @app_commands.describe(message="The message to update.")
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
     async def update_player(self, context: Context, message: str, team: str) -> None:
         """
         Updates the roster message.
@@ -710,11 +703,7 @@ class Roster(commands.Cog, name="rosters"):
         :param team: The team to update the roster for.
         """
         message = int(message)
-        team = team.capitalize()
-        if team.startswith("Alternate "):
-            team = team
-        else:
-            team = "Alternate " + team
+        team = self.standardize_team_name(team)
 
         # Check if the team exists
         if not await self.bot.database.get_team(team):
@@ -754,7 +743,7 @@ class Roster(commands.Cog, name="rosters"):
     )
     @app_commands.describe(member="The id of the player to sign.", team="The team to sign the player to.",
                            role="The role of the player to sign.")
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
     @app_commands.choices(role=[Choice(name="Main Tank", value="Main Tank"),
                                 Choice(name="Off Tank", value="Off Tank"),
                                 Choice(name="Hitscan DPS", value="Hitscan DPS"),
@@ -776,11 +765,7 @@ class Roster(commands.Cog, name="rosters"):
         """
         player_id = member.id
         name = member.display_name
-        team = team.capitalize()
-        if team.startswith("Alternate "):
-            team = team
-        else:
-            team = "Alternate " + team
+        team = self.standardize_team_name(team)
 
         # Fetch player's existing record from the database
         existing_player = await self.bot.database.get_player(player_id)
@@ -835,7 +820,7 @@ class Roster(commands.Cog, name="rosters"):
     )
     @app_commands.describe(member="The name of the player to release.", role="The role of the player",
                            team="The team of the player")
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
     async def release_player(self, context: Context, member: discord.Member, role: str = None,
                              team: str = None) -> None:
         """
@@ -848,11 +833,7 @@ class Roster(commands.Cog, name="rosters"):
         """
         player_id = member.id
         name = member.display_name
-        team = team.capitalize()
-        if team.startswith("Alternate "):
-            team = team
-        else:
-            team = "Alternate " + team
+        team = self.standardize_team_name(team)
         # Check if the player exists in the database with the given parameters
         existing_entry = await self.bot.database.get_player(player_id)
 
@@ -878,7 +859,7 @@ class Roster(commands.Cog, name="rosters"):
         description="Edit an existing player.",
     )
     @app_commands.describe(member="The name of the player to edit.", new_role="The new role for the player.")
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
     @app_commands.choices(new_role=[Choice(name="Main Tank", value="Main Tank"),
                                     Choice(name="Off Tank", value="Off Tank"),
                                     Choice(name="Hitscan DPS", value="Hitscan DPS"),
