@@ -335,6 +335,7 @@ class Owner(commands.Cog, name="owner"):
         )
         await context.send(embed=embed, ephemeral=True)
 
+    '''
     @commands.hybrid_group(
         name="servers",
         description="Get the list of all servers the bot is in.",
@@ -441,6 +442,7 @@ class Owner(commands.Cog, name="owner"):
             await context.send(embed=discord.Embed(
                 description="Couldn't add any roles or create a new role due to permission issues.",
                 color=discord.Color.from_str(config["color"])), ephemeral=True)
+            '''
 
 
 async def setup(bot) -> None:

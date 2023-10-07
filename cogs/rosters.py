@@ -18,6 +18,8 @@ from discord.ext.commands import Context
 
 import traceback
 from typing import List, Dict
+from collections import defaultdict
+
 
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -131,7 +133,7 @@ class Roster(commands.Cog, name="rosters"):
 
         return embed
 
-    def get_staff_embed(self, context: Context):
+    async def get_staff_embed(self, context: Context):
         roles_dict = {
             "Operation Manager": [],
             "Operations Coordinator": [],
@@ -182,13 +184,51 @@ class Roster(commands.Cog, name="rosters"):
                 members_str = "\n".join([f"{member.mention} - {member.name}" for member in members])
                 description_str += f"{title}\n{members_str}\n\n"
 
-        embed = discord.Embed(
+        staff_embed = discord.Embed(
             title="Alternate eSports Staff and Teams",
             description=description_str,
             color=discord.Color.from_str(config["color"])
         )
 
-        return embed
+        # Initialize manager_description_str
+        manager_description_str = ""
+
+        # Dictionary to store team managers
+        team_managers_dict = defaultdict(list)
+
+        # List to store managers without teams
+        general_managers = []
+
+        # Loop through guild members to populate team_managers_dict and general_managers
+        for member in context.guild.members:
+            if discord.utils.get(member.roles, name="Managers"):
+                # Fetch the list of teams the manager manages
+                managed_teams = await self.bot.database.get_managed_teams(member.id)
+                if managed_teams:
+                    for team in managed_teams:
+                        team_managers_dict[team].append(member)
+                else:
+                    general_managers.append(member)
+
+        # Populate manager_description_str with team managers
+        for team, managers in team_managers_dict.items():
+            manager_names = "\n".join([f"{member.mention} - {member.name}" for member in managers])
+            manager_description_str += f"**{team} Manager**\n{manager_names}\n"
+
+        manager_description_str += "<:manager:1159872594502242375> Managers:"
+
+        # Create the manager embed
+        manager_embed = discord.Embed(
+            title="Alternate eSports Team Managers",
+            description=manager_description_str,
+            color=discord.Color.from_str(config["color"])
+        )
+
+        # Add general managers as fields
+        for member in general_managers:
+            manager_embed.add_field(name=member.name, value=member.mention, inline=True)
+
+        return [staff_embed, manager_embed]
 
     def get_players_embed(self, context: Context, team_name: str, color: str, players: List[Dict]):
         roles_order = [
@@ -231,9 +271,9 @@ class Roster(commands.Cog, name="rosters"):
                 title = f"{emoji} {role}"
                 if roster_dict[role]:
                     for username in roster_dict[role]:
-                        description_str += f"{title}: {username}\n"
+                        description_str += f"**{title}:** {username}\n"
                 else:
-                    description_str += f"{title}: *Trialing*\n"
+                    description_str += f"**{title}:** *Trialing*\n"
 
             embed = discord.Embed(
                 description=description_str,
@@ -270,16 +310,14 @@ class Roster(commands.Cog, name="rosters"):
     )
     @app_commands.describe(message="The message to update.")
     @commands.is_owner()
-    async def update_coach(self, context: Context, message: str = None) -> None:
+    async def update_coach(self, context: Context, message: str) -> None:
         """
         Updates the coaches roster message.
 
         :param context: The hybrid command context.
         :param message: The message to update.
         """
-        if message is not None:
-            # convert message to int
-            message = int(message)
+        message = int(message)
 
         embed = discord.Embed(
             title="Updating Coach roster...",
@@ -313,7 +351,9 @@ class Roster(commands.Cog, name="rosters"):
         )
         await context.send(embed=reply, ephemeral=True)
 
-        await context.channel.send(file=discord.File('graphics/Staff.png'), embed=self.get_staff_embed(context))
+        embeds = await self.get_staff_embed(context)
+
+        await context.channel.send(file=discord.File('graphics/Staff.png'), embeds=embeds)
 
     @commands.hybrid_command(
         name="updatestaff",
@@ -321,16 +361,14 @@ class Roster(commands.Cog, name="rosters"):
     )
     @app_commands.describe(message="The message to update.")
     @commands.is_owner()
-    async def update_staff(self, context: Context, message: str = None) -> None:
+    async def update_staff(self, context: Context, message: str) -> None:
         """
         Updates the staff roster message.
 
         :param context: The hybrid command context.
         :param message: The message to update.
         """
-        if message is not None:
-            # convert message to int
-            message = int(message)
+        message = int(message)
 
         embed = discord.Embed(
             title="Updating Staff roster...",
@@ -344,14 +382,15 @@ class Roster(commands.Cog, name="rosters"):
         )
         # get the message
         message = await context.channel.fetch_message(message)
-        await message.edit(embed=self.get_staff_embed(context))
+        embeds = await self.get_staff_embed(context)
+        await message.edit(embeds=embeds)
         await reply.edit(embed=embed, delete_after=5)
 
     @commands.hybrid_group(
         name="team",
         description="Lists, create, edit and delete Alternate eSports teams.",
     )
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
     async def team(self, context: Context) -> None:
         """
         Lists, create, edit and delete all Alternate eSports team rosters.
@@ -372,7 +411,7 @@ class Roster(commands.Cog, name="rosters"):
         name="list",
         description="List all Alternate eSports team rosters.",
     )
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
     async def list_team(self, context: Context) -> None:
         """
         List all Alternate eSports team rosters.
@@ -595,7 +634,7 @@ class Roster(commands.Cog, name="rosters"):
         name="player",
         description="Lists, sign, release and edit Alternate eSports players.",
     )
-    @commands.is_owner()
+    @commands.bot_has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
     async def player(self, context: Context) -> None:
         """
         Lists, sign, release and edit Alternate eSports players.
@@ -617,7 +656,7 @@ class Roster(commands.Cog, name="rosters"):
         name="roster",
         description="Shows team roster.",
     )
-    @commands.is_owner()
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
     async def player_roster(self, context: Context, team: str) -> None:
         """
         List all Alternate eSports players.
@@ -743,57 +782,89 @@ class Roster(commands.Cog, name="rosters"):
         else:
             team = "Alternate " + team
 
-        # Check if the player already exists
-        if await self.bot.database.get_player(player_id):
+        # Fetch player's existing record from the database
+        existing_player = await self.bot.database.get_player(player_id)
+        if existing_player:
+            existing_team, existing_role = existing_player[1], existing_player[2]
+            # Check the conditions
+            if existing_team == team and existing_role == role:
+                embed = discord.Embed(
+                    title=f"Player {name} already in {team} as {role}.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif existing_team != team or (
+                    existing_team == team and existing_role not in ["Main Tank", "Off Tank", "Hitscan DPS",
+                                                                    "Flex DPS", "Main Support", "Flex Support"]):
+                await self.bot.database.add_player(player_id, team, role)
+                embed = discord.Embed(
+                    title=f'Signed player {name} for {team} as {role}.',
+                    color=discord.Color.from_str(config["color"])
+                )
+                await context.send(embed=embed, delete_after=10)
+            elif existing_team == team and existing_role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS",
+                                                             "Main Support", "Flex Support"]:
+                embed = discord.Embed(
+                    title=f"Player {name} already in {team} as {existing_role}.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+
+        else:
+            # Player doesn't exist, so add them to the database
+            if not await self.bot.database.get_team(team):
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            await self.bot.database.add_player(player_id, team, role)
             embed = discord.Embed(
-                title=f"Player {name} already in a roster.",
-                color=0xE02B2B,
+                title=f'Signed player {name} for {team} as {role}.',
+                color=discord.Color.from_str(config["color"])
             )
-            await context.send(embed=embed, ephemeral=True)
-            return
-
-        # Check if the team exists
-        if not await self.bot.database.get_team(team):
-            embed = discord.Embed(
-                title=f"Team {team} doesn't exist.",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed, ephemeral=True)
-            return
-
-        await self.bot.database.add_player(player_id, team, role)
-
-        embed = discord.Embed(
-            title=f'Signed player {name} for a {team} as a {role}.',
-            color=discord.Color.from_str(config["color"])
-        )
-        await context.send(embed=embed, delete_after=10)
+            await context.send(embed=embed, delete_after=10)
 
     @player.command(
         base="player",
         name="release",
         description="Release an existing player.",
     )
-    @app_commands.describe(member="The name of the player to release.")
+    @app_commands.describe(member="The name of the player to release.", role="The role of the player",
+                           team="The team of the player")
     @commands.is_owner()
-    async def release_player(self, context: Context, member: discord.Member) -> None:
+    async def release_player(self, context: Context, member: discord.Member, role: str = None,
+                             team: str = None) -> None:
         """
         Release an existing player.
 
         :param context: The hybrid command context.
         :param member: The id of the player to release.
+        :param role: The role of the player.
+        :param team: The team of the player.
         """
         player_id = member.id
         name = member.display_name
-        if not await self.bot.database.get_player(player_id):
+        team = team.capitalize()
+        if team.startswith("Alternate "):
+            team = team
+        else:
+            team = "Alternate " + team
+        # Check if the player exists in the database with the given parameters
+        existing_entry = await self.bot.database.get_player(player_id)
+
+        if not existing_entry:
             embed = discord.Embed(
-                title=f"Player {name} doesn't exist.",
+                title=f"Player {name} doesn't exist with the given parameters.",
                 color=0xE02B2B,
             )
             await context.send(embed=embed, ephemeral=True)
             return
 
-        await self.bot.database.delete_player(player_id)
+        await self.bot.database.delete_player(player_id, role, team)
 
         embed = discord.Embed(
             title=f'Player {name} released.',

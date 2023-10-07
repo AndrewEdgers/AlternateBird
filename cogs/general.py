@@ -81,7 +81,8 @@ class General(commands.Cog, name="general"):
         name="help", description="List all commands the bot has loaded."
     )
     async def help(self, context: Context) -> None:
-        prefix = self.bot.config["prefix"]
+        # prefix = self.bot.config["prefix"]
+        prefix = "/"
         embed = discord.Embed(
             title="Help", description="List of available commands:", color=discord.Color.from_str(config["color"])
         )
@@ -98,7 +99,7 @@ class General(commands.Cog, name="general"):
             embed.add_field(
                 name=i.capitalize(), value=f"```{help_text}```", inline=False
             )
-        await context.send(embed=embed, ephemeral=True)
+        await context.send(embed=embed, delete_after=90)
 
     @commands.hybrid_command(
         name="botinfo",

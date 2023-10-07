@@ -144,6 +144,12 @@ class DatabaseManager:
             )
             await self.connection.commit()
 
+    async def get_managed_teams(self, player_id: int):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT team_name FROM players WHERE player_id = ? AND role = 'Manager'", (player_id,))
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+
     async def get_team(self, team_name: str):
         async with self.connection.cursor() as cursor:
             await cursor.execute("SELECT * FROM teams WHERE team_name = ?", (team_name,))
@@ -162,9 +168,20 @@ class DatabaseManager:
             )
             await self.connection.commit()
 
-    async def delete_player(self, player_id: int):
+    async def delete_player(self, player_id: int, role: str = None, team_name: str = None):
         async with self.connection.cursor() as cursor:
-            await cursor.execute("DELETE FROM players WHERE player_id = ?", (player_id,))
+            query = "DELETE FROM players WHERE player_id = ?"
+            params = [player_id]
+
+            if role is not None:
+                query += " AND role = ?"
+                params.append(role)
+
+            if team_name is not None:
+                query += " AND team_name = ?"
+                params.append(team_name)
+
+            await cursor.execute(query, params)
             await self.connection.commit()
 
     async def edit_player(self, player_id: int, team_name: str = None, role: str = None):
