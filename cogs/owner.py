@@ -210,13 +210,13 @@ class Owner(commands.Cog, name="owner"):
 
     @commands.hybrid_command(
         name="embed",
-        description="The bot will say anything you want, but within embeds.",
+        description="Sends the message through bot in embeds.",
     )
     @app_commands.describe(message="The message that should be repeated by the bot")
     @commands.is_owner()
     async def embed(self, context: Context, *, message: str) -> None:
         """
-        The bot will say anything you want, but using embeds.
+        Sends the message through bot in embeds.
 
         :param context: The hybrid command context.
         :param message: The message that should be repeated by the bot.
@@ -275,13 +275,13 @@ class Owner(commands.Cog, name="owner"):
     @blacklist.command(
         base="blacklist",
         name="add",
-        description="Lets you add a user from not being able to use the bot.",
+        description="Lets you add a user to bot's blacklist.",
     )
     @app_commands.describe(user="The user that should be added to the blacklist")
     @commands.is_owner()
     async def blacklist_add(self, context: Context, user: discord.User) -> None:
         """
-        Lets you add a user from not being able to use the bot.
+        Lets you add a user to bot's blacklist.
 
         :param context: The hybrid command context.
         :param user: The user that should be added to the blacklist.
@@ -307,13 +307,13 @@ class Owner(commands.Cog, name="owner"):
     @blacklist.command(
         base="blacklist",
         name="remove",
-        description="Lets you remove a user from not being able to use the bot.",
+        description="Lets you remove a user to bot's blacklist.",
     )
     @app_commands.describe(user="The user that should be removed from the blacklist.")
     @commands.is_owner()
     async def blacklist_remove(self, context: Context, user: discord.User) -> None:
         """
-        Lets you remove a user from not being able to use the bot.
+        Lets you remove a user to bot's blacklist.
 
         :param context: The hybrid command context.
         :param user: The user that should be removed from the blacklist.

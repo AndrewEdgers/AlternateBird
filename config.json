@@ -21,6 +21,6 @@
     "Waiting for the next map",
     "Remembering OWL >_<"
   ],
-  "sync_commands_globally": true,
+  "sync_commands_globally": false,
   "disabled_cogs": ["template", "fun", "moderation"]
 }

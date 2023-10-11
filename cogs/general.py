@@ -5,6 +5,7 @@ Description:
 
 Version: 6.1.0
 """
+import datetime
 import json
 import os
 import sys
@@ -84,9 +85,11 @@ class General(commands.Cog, name="general"):
         prefix = "/"
         embed = discord.Embed(
             title="Help",
-            description="List of available commands:",
+            description="**List of available commands:**",
             color=discord.Color.from_str(config["color"]),
+            timestamp=datetime.datetime.utcnow()
         )
+        # embed.set_thumbnail(url="https://alt-esports.x3.pm/i/8d0lk.gif")
 
         for i in self.bot.cogs:
             if i == "owner" and not (await self.bot.is_owner(context.author)):
@@ -113,17 +116,23 @@ class General(commands.Cog, name="general"):
 
             help_text = "\n".join(data)
             embed.add_field(
-                name=i.capitalize(), value=f"{help_text}", inline=False
+                name='\u200b',
+                value="``` ```",
+                inline=False
+            )
+            embed.add_field(
+                name=f"<:Lightteal:1082786810662498304> {i.capitalize()} <:Lightteal:1082786810662498304>",
+                value=f"{help_text}", inline=False
             )
         await context.send(embed=embed, delete_after=90)
 
     @commands.hybrid_command(
         name="botinfo",
-        description="Get some useful (or not) information about the bot.",
+        description="Get information about the bot.",
     )
     async def botinfo(self, context: Context) -> None:
         """
-        Get some useful (or not) information about the bot.
+        Get information about the bot.
 
         :param context: The hybrid command context.
         """
@@ -132,7 +141,7 @@ class General(commands.Cog, name="general"):
             color=discord.Color.from_str(config["color"]),
         )
         embed.set_author(name="Bot Information")
-        embed.add_field(name="Owner:", value="edgers1", inline=True)
+        embed.add_field(name="Owner:", value="edgers", inline=True)
         embed.add_field(
             name="Python Version:", value=f"{platform.python_version()}", inline=True
         )
@@ -146,11 +155,11 @@ class General(commands.Cog, name="general"):
 
     @commands.hybrid_command(
         name="serverinfo",
-        description="Get some useful (or not) information about the server.",
+        description="Get information about the server.",
     )
     async def serverinfo(self, context: Context) -> None:
         """
-        Get some useful (or not) information about the server.
+        Get information about the server.
 
         :param context: The hybrid command context.
         """
