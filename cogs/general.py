@@ -77,40 +77,6 @@ class General(commands.Cog, name="general"):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # @commands.hybrid_command(
-    #     name="help", description="List all commands the bot has loaded."
-    # )
-    # async def help(self, context: Context) -> None:
-    #     parent_commands = {'blacklist', 'team', 'player'}  # Add more parent commands here if needed
-    #     prefix = "/"
-    #     embed = discord.Embed(
-    #         title="Help", description="List of available commands:", color=discord.Color.from_str(config["color"])
-    #     )
-    #     for i in self.bot.cogs:
-    #         if i == "owner" and not (await self.bot.is_owner(context.author)):
-    #             continue
-    #         cog = self.bot.get_cog(i.lower())
-    #         commands = cog.get_commands()
-    #         data = []
-    #         for command in commands:
-    #             description = command.description.partition("\n")[0]
-    #             if command.name in parent_commands:  # It's a parent command
-    #                 cmd_text = f"{prefix}{command.name} (Group)"
-    #             elif command.parent:  # It's a sub-command
-    #                 parent_id = self.bot.cached_command_ids.get(command.parent.name, "Unknown")
-    #                 cmd_text = f"{prefix}{command.parent.name} {command.name}:{parent_id}"
-    #             else:  # It's a standalone command
-    #                 command_id = self.bot.cached_command_ids.get(command.name, "Unknown")
-    #                 cmd_text = f"{prefix}{command.name}"
-    #                 if command_id != "Unknown":
-    #                     cmd_text = "<" + cmd_text + f":{command_id}>"
-    #             data.append(f"{cmd_text} - {description}")
-    #         help_text = "\n".join(data)
-    #         embed.add_field(
-    #             name=i.capitalize(), value=f"{help_text}", inline=False
-    #         )
-    #     await context.send(embed=embed, delete_after=90)
-
     @commands.hybrid_command(
         name="help", description="List all commands the bot has loaded."
     )

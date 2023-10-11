@@ -83,6 +83,66 @@ class ConfirmView(discord.ui.View):
 class Roster(commands.Cog, name="rosters"):
     def __init__(self, bot) -> None:
         self.bot = bot
+        self.context_menu_roster = app_commands.ContextMenu(
+            name="Update Rosters", callback=self.update_all_messages
+        )
+        self.bot.tree.add_command(self.context_menu_roster)
+
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
+    async def update_all_messages(
+            self, interaction: discord.Interaction, message: discord.Message) -> None:
+        """
+        Updates all messages similar to the given message.
+
+        :param interaction: The application command interaction.
+        :param message: The message that is being interacted with.
+        """
+        # Open the JSON file and read the data
+        config_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/message_info.json"
+        try:
+            with open(config_path, 'r') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            print("Config file not found.")
+            return
+
+        # Find out which type of message this is (e.g., "coaches")
+        message_type = None
+        for key, messages in data.items():
+            if any(msg['message_id'] == message.id for msg in messages):
+                message_type = key
+                break
+
+        if message_type is None:
+            print("Message type not found.")
+            return
+
+        if message_type == "coaches":
+            new_embeds = self.get_coaches_embed(interaction)
+        elif message_type == "staff":
+            new_embeds = await self.get_staff_embed(interaction)
+        else:
+            new_embeds = await self.get_players_embed(interaction, message_type, message.embeds[0].color,
+                                                      message.embeds[0].fields)
+
+        # Update each message of this type
+        for msg_info in data[message_type]:
+            channel = self.bot.get_channel(msg_info['channel_id'])
+            if channel:
+                msg_to_update = await channel.fetch_message(msg_info['message_id'])
+                if msg_to_update:
+                    if isinstance(new_embeds, list):
+                        await msg_to_update.edit(embeds=new_embeds)
+                    else:
+                        await msg_to_update.edit(embeds=[new_embeds])
+
+        # Send a response to let the user know the operation is complete
+        embed = discord.Embed(
+            title="Update Complete",
+            description=f"All '{message_type}' messages have been updated.",
+            color=discord.Color.from_str(config["color"]),
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     def standardize_team_name(self, team_name: str) -> str:
         words = team_name.split()
@@ -293,6 +353,58 @@ class Roster(commands.Cog, name="rosters"):
 
         return embeds
 
+    def save_message_info(self, message_id, channel_id, team_name):
+        config_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/message_info.json"
+
+        try:
+            with open(config_path, 'r') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {}
+
+        if team_name not in data:
+            data[team_name] = []
+
+        data[team_name].append({'message_id': message_id, 'channel_id': channel_id})
+
+        with open(config_path, 'w') as f:
+            json.dump(data, f)
+
+    async def fetch_and_update(self, bot, team_name, new_embeds):
+        config_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/message_info.json"
+
+        try:
+            with open(config_path, 'r') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("No data found.")
+            return
+
+        if team_name not in data:
+            print("Team name not found.")
+            return
+
+        to_remove = []  # Store indexes of messages that are not found
+        for idx, info in enumerate(data[team_name]):
+            channel_id = info['channel_id']
+            message_id = info['message_id']
+
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                print(f"Channel {channel_id} not found.")
+                continue
+
+            message = await channel.fetch_message(message_id)
+            if not message:
+                print(f"Message {message_id} not found.")
+                to_remove.append(idx)  # Mark this message for removal
+                continue
+
+            if isinstance(new_embeds, list):
+                await message.edit(embeds=new_embeds)
+            else:
+                await message.edit(embeds=[new_embeds])
+
     @commands.hybrid_command(
         name="coaches",
         description="Lists all Alternate eSports coaches roster.",
@@ -309,7 +421,9 @@ class Roster(commands.Cog, name="rosters"):
                 color=discord.Color.from_str(config["color"])
             )
             await context.send(embed=embed, ephemeral=True)
-            await context.channel.send(file=discord.File('graphics/Coaches.png'), embed=self.get_coaches_embed(context))
+            message = await context.channel.send(file=discord.File('graphics/Coaches.png'),
+                                                 embed=self.get_coaches_embed(context))
+            self.save_message_info(message.id, message.channel.id, "coaches")
         else:
             await context.send(file=discord.File('graphics/Coaches.png'), embed=self.get_coaches_embed(context),
                                ephemeral=True)
@@ -318,16 +432,13 @@ class Roster(commands.Cog, name="rosters"):
         name="updatecoach",
         description="Updates the coaches roster message.",
     )
-    @app_commands.describe(message="The message to update.")
     @commands.is_owner()
-    async def update_coach(self, context: Context, message: str) -> None:
+    async def update_coach(self, context: Context) -> None:
         """
         Updates the coaches roster message.
 
         :param context: The hybrid command context.
-        :param message: The message to update.
         """
-        message = int(message)
 
         embed = discord.Embed(
             title="Updating Coach roster...",
@@ -339,9 +450,8 @@ class Roster(commands.Cog, name="rosters"):
             title="Coaches roster updated.",
             color=discord.Color.from_str(config["color"])
         )
-        # get the message
-        message = await context.channel.fetch_message(message)
-        await message.edit(embed=self.get_coaches_embed(context))
+        new_embed = self.get_coaches_embed(context)
+        await self.fetch_and_update(self.bot, "coaches", new_embed)
         await reply.edit(embed=embed, delete_after=5)
 
     @commands.hybrid_command(
@@ -363,22 +473,20 @@ class Roster(commands.Cog, name="rosters"):
 
         embeds = await self.get_staff_embed(context)
 
-        await context.channel.send(file=discord.File('graphics/Staff.png'), embeds=embeds)
+        message = await context.channel.send(file=discord.File('graphics/Staff.png'), embeds=embeds)
+        self.save_message_info(message.id, message.channel.id, "staff")
 
     @commands.hybrid_command(
         name="updatestaff",
         description="Updates the staff roster message.",
     )
-    @app_commands.describe(message="The message to update.")
     @commands.is_owner()
-    async def update_staff(self, context: Context, message: str) -> None:
+    async def update_staff(self, context: Context) -> None:
         """
         Updates the staff roster message.
 
         :param context: The hybrid command context.
-        :param message: The message to update.
         """
-        message = int(message)
 
         embed = discord.Embed(
             title="Updating Staff roster...",
@@ -391,9 +499,8 @@ class Roster(commands.Cog, name="rosters"):
             color=discord.Color.from_str(config["color"])
         )
         # get the message
-        message = await context.channel.fetch_message(message)
         embeds = await self.get_staff_embed(context)
-        await message.edit(embeds=embeds)
+        await self.fetch_and_update(self.bot, "staff", embeds)
         await reply.edit(embed=embed, delete_after=5)
 
     @commands.hybrid_group(
@@ -686,28 +793,23 @@ class Roster(commands.Cog, name="rosters"):
         )
         await context.send(embed=embed, ephemeral=True)
 
-        await context.channel.send(file=discord.File(banner_path), embeds=embeds)
+        message = await context.channel.send(file=discord.File(banner_path), embeds=embeds)
+        self.save_message_info(message.id, message.channel.id, team)
 
     @player.command(
         base="player",
         name="update",
-        description="Updates the roster message_obj.",
+        description="Updates the roster message.",
     )
-    @app_commands.describe(message="The link of a message to update.")
     @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
-    async def update_player(self, context: Context, message: str, team: str) -> None:
+    async def update_player(self, context: Context, team: str) -> None:
         """
         Updates the roster message_obj.
 
         :param context: The hybrid command context.
-        :param message: The link of a message to update.
         :param team: The team to update the roster for.
         """
-        server_id, channel_id, message_id = map(int, message.split("/")[4:7])
         team = self.standardize_team_name(team)
-
-        channel = await context.bot.fetch_channel(channel_id)
-        message_obj = await channel.fetch_message(message_id)
 
         # Check if the team exists
         if not await self.bot.database.get_team(team):
@@ -730,13 +832,12 @@ class Roster(commands.Cog, name="rosters"):
         players = await self.bot.database.get_players(team)
 
         embeds = self.get_players_embed(context, team, color, players)
-        await message_obj.edit(embeds=embeds)
+        await self.fetch_and_update(self.bot, team, embeds)
 
         embed = discord.Embed(
             title="Roster updated.",
             color=discord.Color.from_str(config["color"])
         )
-        # get the message_obj
         await reply.edit(embed=embed, delete_after=5)
 
     @player.command(
@@ -822,7 +923,6 @@ class Roster(commands.Cog, name="rosters"):
                     title=f'Signed player {name} for {team} as {role}.',
                     color=discord.Color.from_str(config["color"])
                 )
-
                 if roles_to_remove:
                     await member.remove_roles(*roles_to_remove)
                 await member.add_roles(*roles_to_add)
