@@ -207,6 +207,13 @@ class DiscordBot(commands.Bot):
             await bot.tree.sync()
             self.logger.info("Done!")
 
+        # Cache command IDs
+        bot.cached_command_ids = {}
+        app_commands = await bot.tree.fetch_commands()
+        for cmd in app_commands:
+            bot.cached_command_ids[cmd.name] = cmd.id
+        self.logger.info("Cached command IDs")
+
     async def on_message(self, message: discord.Message) -> None:
         """
         The code in this event is executed every time someone sends a message, with or without the prefix
