@@ -19,6 +19,7 @@ from discord.ext.commands import Context
 import traceback
 from typing import List, Dict
 from collections import defaultdict
+from urllib.parse import urlparse, parse_qs
 
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -690,20 +691,23 @@ class Roster(commands.Cog, name="rosters"):
     @player.command(
         base="player",
         name="update",
-        description="Updates the roster message.",
+        description="Updates the roster message_obj.",
     )
-    @app_commands.describe(message="The message to update.")
+    @app_commands.describe(message="The link of a message to update.")
     @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
     async def update_player(self, context: Context, message: str, team: str) -> None:
         """
-        Updates the roster message.
+        Updates the roster message_obj.
 
         :param context: The hybrid command context.
-        :param message: The message to update.
+        :param message: The link of a message to update.
         :param team: The team to update the roster for.
         """
-        message = int(message)
+        server_id, channel_id, message_id = map(int, message.split("/")[4:7])
         team = self.standardize_team_name(team)
+
+        channel = await context.bot.fetch_channel(channel_id)
+        message_obj = await channel.fetch_message(message_id)
 
         # Check if the team exists
         if not await self.bot.database.get_team(team):
@@ -725,15 +729,14 @@ class Roster(commands.Cog, name="rosters"):
 
         players = await self.bot.database.get_players(team)
 
-        message = await context.channel.fetch_message(message)
         embeds = self.get_players_embed(context, team, color, players)
-        await message.edit(embeds=embeds)
+        await message_obj.edit(embeds=embeds)
 
         embed = discord.Embed(
             title="Roster updated.",
             color=discord.Color.from_str(config["color"])
         )
-        # get the message
+        # get the message_obj
         await reply.edit(embed=embed, delete_after=5)
 
     @player.command(
@@ -767,6 +770,38 @@ class Roster(commands.Cog, name="rosters"):
         name = member.display_name
         team = self.standardize_team_name(team)
 
+        guild = context.guild
+        ow_role = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate', '').strip()} Team")
+        ow_team = discord.utils.get(guild.roles, name="Overwatch Team")
+        team_manager = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate', '').strip()} Manager")
+        manager = discord.utils.get(guild.roles, name="Managers")
+        team_coach = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate', '').strip()} Coach")
+        coaches = discord.utils.get(guild.roles, name="OW | Coach")
+
+        ow_tryout = discord.utils.get(member.roles, name=f"OW | {team.replace('Alternate', '').strip()} Tryout")
+        ow_ringer = discord.utils.get(member.roles, name=f"OW | {team.replace('Alternate', '').strip()} Ringer")
+        trial_coach = discord.utils.get(member.roles, name="[Trial] Coach")
+
+        roles_to_remove = []
+        if ow_tryout:
+            roles_to_remove.append(ow_tryout)
+        if ow_ringer:
+            roles_to_remove.append(ow_ringer)
+        if trial_coach:
+            roles_to_remove.append(trial_coach)
+
+        roles_to_add = []
+        if role in ["Manager", "Head Coach", "Assistant Coach"]:
+            if role == "Manager":
+                roles_to_add.append(team_manager)
+                roles_to_add.append(manager)
+            elif role == "Head Coach" or role == "Assistant Coach":
+                roles_to_add.append(team_coach)
+                roles_to_add.append(coaches)
+        else:
+            roles_to_add.append(ow_role)
+            roles_to_add.append(ow_team)
+
         # Fetch player's existing record from the database
         existing_player = await self.bot.database.get_player(player_id)
         if existing_player:
@@ -787,7 +822,11 @@ class Roster(commands.Cog, name="rosters"):
                     title=f'Signed player {name} for {team} as {role}.',
                     color=discord.Color.from_str(config["color"])
                 )
-                await context.send(embed=embed, delete_after=10)
+
+                if roles_to_remove:
+                    await member.remove_roles(*roles_to_remove)
+                await member.add_roles(*roles_to_add)
+                await context.send(embed=embed, ephemeral=True)
             elif existing_team == team and existing_role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS",
                                                              "Main Support", "Flex Support"]:
                 embed = discord.Embed(
@@ -811,7 +850,15 @@ class Roster(commands.Cog, name="rosters"):
                 title=f'Signed player {name} for {team} as {role}.',
                 color=discord.Color.from_str(config["color"])
             )
-            await context.send(embed=embed, delete_after=10)
+            roles_to_remove = []
+            if ow_tryout:
+                roles_to_remove.append(ow_tryout)
+            if ow_ringer:
+                roles_to_remove.append(ow_ringer)
+            if roles_to_remove:
+                await member.remove_roles(*roles_to_remove)
+            await member.add_roles(ow_role, ow_team)
+            await context.send(embed=embed, ephemeral=True)
 
     @player.command(
         base="player",
@@ -845,13 +892,28 @@ class Roster(commands.Cog, name="rosters"):
             await context.send(embed=embed, ephemeral=True)
             return
 
+        # Roles to remove
+        guild = context.guild
+        ow_role = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate', '').strip()} Team")
+        ow_team = discord.utils.get(guild.roles, name="Overwatch Team")
+        team_manager = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate', '').strip()} Manager")
+        manager = discord.utils.get(guild.roles, name="Managers")
+        team_coach = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate', '').strip()} Coach")
+        coaches = discord.utils.get(guild.roles, name="OW | Coach")
+
+        roles_to_remove = [r for r in [ow_role, ow_team, team_manager, manager, team_coach, coaches] if r]
+
+        # Remove the roles
+        if roles_to_remove:
+            await member.remove_roles(*roles_to_remove)
+
         await self.bot.database.delete_player(player_id, role, team)
 
         embed = discord.Embed(
             title=f'Player {name} released.',
             color=discord.Color.from_str(config["color"])
         )
-        await context.send(embed=embed, delete_after=10)
+        await context.send(embed=embed, ephemeral=True)
 
     @player.command(
         base="player",
