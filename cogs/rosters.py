@@ -128,7 +128,7 @@ class Roster(commands.Cog, name="rosters"):
         if message_type == "coaches":
             new_embeds = self.get_coaches_embed(interaction)
         elif message_type == "staff":
-            new_embeds = self.get_staff_embed(interaction)
+            new_embeds = await self.get_staff_embed(interaction)
         else:
             hex_color = "#{:06x}".format(message.embeds[0].color.value)
             team = message_type  # Assuming that message_type is the team name
@@ -880,6 +880,7 @@ class Roster(commands.Cog, name="rosters"):
         :param team: The team to sign the player to.
         :param role: The role of the player to sign.
         """
+        await context.interaction.response.defer(ephemeral=True)
         player_id = member.id
         name = member.display_name
         team = self.standardize_team_name(team)
@@ -926,7 +927,7 @@ class Roster(commands.Cog, name="rosters"):
                     title=f"Player {name} already in {team} as {role}.",
                     color=0xE02B2B,
                 )
-                await context.send(embed=embed, ephemeral=True)
+                await context.interaction.followup.send(embed=embed, ephemeral=True)
                 return
             elif existing_team != team or (
                     existing_team == team and existing_role not in ["Main Tank", "Off Tank", "Hitscan DPS",
@@ -940,14 +941,14 @@ class Roster(commands.Cog, name="rosters"):
                     await member.remove_roles(*roles_to_remove)
                 if roles_to_add:
                     await member.add_roles(*roles_to_add)
-                await context.send(embed=embed, ephemeral=True)
+                await context.interaction.followup.send(embed=embed, ephemeral=True)
             elif existing_team == team and existing_role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS",
                                                              "Main Support", "Flex Support"]:
                 embed = discord.Embed(
                     title=f"Player {name} already in {team} as {existing_role}.",
                     color=0xE02B2B,
                 )
-                await context.send(embed=embed, ephemeral=True)
+                await context.interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
         else:
@@ -957,7 +958,7 @@ class Roster(commands.Cog, name="rosters"):
                     title=f"Team {team} doesn't exist.",
                     color=0xE02B2B,
                 )
-                await context.send(embed=embed, ephemeral=True)
+                await context.interaction.followup.send(embed=embed, ephemeral=True)
                 return
             await self.bot.database.add_player(player_id, team, role)
             embed = discord.Embed(
@@ -974,18 +975,18 @@ class Roster(commands.Cog, name="rosters"):
                 await member.remove_roles(*roles_to_remove)
             if roles_to_add:
                 await member.add_roles(*roles_to_add)
-            await context.send(embed=embed, ephemeral=True)
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
 
     @player.command(
         base="player",
         name="release",
         description="Release an existing player.",
     )
-    @app_commands.describe(member="The name of the player to release.", role="The role of the player",
-                           team="The team of the player")
+    @app_commands.describe(member="The name of the player to release.", team="The team of the player",
+                           role="The role of the player")
     @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
-    async def release_player(self, context: Context, member: discord.Member, role: str = None,
-                             team: str = None) -> None:
+    async def release_player(self, context: Context, member: discord.Member, team: str,
+                             role: str = None) -> None:
         """
         Release an existing player.
 
@@ -994,6 +995,7 @@ class Roster(commands.Cog, name="rosters"):
         :param role: The role of the player.
         :param team: The team of the player.
         """
+        await context.interaction.response.defer(ephemeral=True)
         player_id = member.id
         name = member.display_name
         team = self.standardize_team_name(team)
@@ -1005,7 +1007,7 @@ class Roster(commands.Cog, name="rosters"):
                 title=f"Player {name} doesn't exist with the given parameters.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed, ephemeral=True)
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
             return
 
         # Roles to remove
@@ -1029,7 +1031,7 @@ class Roster(commands.Cog, name="rosters"):
             title=f'Player {name} released.',
             color=discord.Color.from_str(config["color"])
         )
-        await context.send(embed=embed, ephemeral=True)
+        await context.interaction.followup.send(embed=embed, ephemeral=True)
 
     @player.command(
         base="player",

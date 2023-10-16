@@ -87,7 +87,6 @@ class General(commands.Cog, name="general"):
             title="Help",
             description="**List of available commands:**",
             color=discord.Color.from_str(config["color"]),
-            timestamp=datetime.datetime.utcnow()
         )
         # embed.set_thumbnail(url="https://alt-esports.x3.pm/i/8d0lk.gif")
 
