@@ -234,8 +234,8 @@ class DiscordBot(commands.Bot):
                 )
                 await thread.send(f'Quote thread for: "{quote_text}"')
             else:
-                await message.delete()
                 await message.channel.send(f'{message.author.mention}, only quotes are allowed here.', delete_after=5)
+                await message.delete()
 
         await self.process_commands(message)
 
