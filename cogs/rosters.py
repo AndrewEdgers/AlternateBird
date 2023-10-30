@@ -183,14 +183,14 @@ class Roster(commands.Cog, name="rosters"):
         if head_coaches:
             title = "**<:HeadCoach:1159488503437078598> Head Coach**" if len(
                 head_coaches) == 1 else "**<:HeadCoach:1159488503437078598> Head Coaches**"
-            head_coaches_str = "\n".join([f"{member.mention} - {member.name}" for member in head_coaches])
+            head_coaches_str = "\n".join([f"{member.mention} - `{member.name}`" for member in head_coaches])
             description_str += f"**{title}**\n{head_coaches_str}\n\n"
 
         if assistant_head_coaches:
             title = "**<:AHC:1159488404950622218> Assistant Head Coach**" if len(
                 assistant_head_coaches) == 1 else "**<:AHC:1159488404950622218> Assistant Head Coaches**"
             assistant_head_coaches_str = "\n".join(
-                [f"{member.mention} - {member.name}" for member in assistant_head_coaches])
+                [f"{member.mention} - `{member.name}`" for member in assistant_head_coaches])
             description_str += f"**{title}**\n{assistant_head_coaches_str}\n\n"
 
         description_str += "**<:Coach:1159488573502931004> Coaches**"
@@ -203,7 +203,7 @@ class Roster(commands.Cog, name="rosters"):
 
         # Add the rest of the coaches as fields
         for member in coaches:
-            embed.add_field(name=member.name, value=member.mention, inline=True)
+            embed.add_field(name=f'`{member.name}`', value=member.mention, inline=True)
 
         return embed
 
@@ -255,7 +255,7 @@ class Roster(commands.Cog, name="rosters"):
                     title = f"{emoji} **{role}**"
                 else:
                     title = f"{emoji} **{role}**" if len(members) == 1 else f"{emoji} **{role}s**"
-                members_str = "\n".join([f"{member.mention} - {member.name}" for member in members])
+                members_str = "\n".join([f"{member.mention} - `{member.name}`" for member in members])
                 description_str += f"{title}\n{members_str}\n\n"
 
         staff_embed = discord.Embed(
@@ -286,7 +286,7 @@ class Roster(commands.Cog, name="rosters"):
 
         # Populate manager_description_str with team managers
         for team, managers in team_managers_dict.items():
-            manager_names = "\n".join([f"{member.mention} - {member.name}" for member in managers])
+            manager_names = "\n".join([f"{member.mention} - `{member.name}`" for member in managers])
             manager_description_str += f"**{team} Manager**\n{manager_names}\n"
 
         manager_description_str += "\n**<:manager:1159872594502242375> Managers**"
@@ -300,7 +300,7 @@ class Roster(commands.Cog, name="rosters"):
 
         # Add general managers as fields
         for member in general_managers:
-            manager_embed.add_field(name=member.name, value=member.mention, inline=True)
+            manager_embed.add_field(name=f'`{member.name}`', value=member.mention, inline=True)
 
         return [staff_embed, manager_embed]
 
@@ -335,7 +335,7 @@ class Roster(commands.Cog, name="rosters"):
             if member:
                 username = member.name
                 mention = member.mention
-                roster_dict[role].append(f"{mention} - {username}")
+                roster_dict[role].append(f"{mention} - `{username}`")
 
         embeds = []
         for category, role_group in roles_order:
