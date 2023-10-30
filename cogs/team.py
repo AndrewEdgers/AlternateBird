@@ -118,13 +118,14 @@ class Team(commands.Cog, name="team"):
         description="Creates a tryout invite for the specified team.",
     )
     @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def tryout(self, context: Context, team: str, amount: int = 1) -> None:
+    async def tryout(self, context: Context, team: str, amount: int = 1, member: discord.Member = None) -> None:
         """
         Creates a tryout invite for the specified team.
 
         :param context: The context of the command.
         :param team: The name of the team.
         :param amount: The amount of invites to create.
+        :param member: The member to give tryout to.
         """
         await context.defer()
         team = self.standardize_team_name(team)
@@ -139,39 +140,174 @@ class Team(commands.Cog, name="team"):
             await context.send(embed=embed, ephemeral=True)
             return
 
-        embed = discord.Embed(
-            title="Tryout invite created",
-            description=f"**Team:** {team[0]}",
-            color=discord.Color.from_str(config["color"]),
-        )
-
-        channel = self.bot.get_channel(1000763776095752302)
-        # for each amount of invites, create a new invite
-        for i in range(amount):
-            invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
-                                                 reason="Tryout invite")
-            self.invites[context.guild.id] = await context.guild.invites()
-            json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
-
-            if os.path.exists(json_path):
-                with open(json_path, "r") as f:
-                    file_content = f.read()
-                    if file_content:
-                        tryout_data = json.loads(file_content)
-                    else:
-                        tryout_data = {}  # Initialize as empty dictionary if the file is empty
-
+        if member:
             role_name = f"OW | {stripped_team_name} Tryout"
-            tryout_data[str(invite.code)] = role_name
+            role = discord.utils.get(context.guild.roles, name=role_name)
+            if not role:
+                embed = discord.Embed(
+                    title="Tryout role not found",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
 
-            with open(json_path, "w") as f:
-                json.dump(tryout_data, f)
+            await member.add_roles(role)
+            embed = discord.Embed(
+                title=f"{team[0]} tryout given to {member.display_name}",
+                color=discord.Color.from_str(config["color"]),
+            )
+        else:
 
-            embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
+            embed = discord.Embed(
+                title="Tryout invite created",
+                description=f"**Team:** {team[0]}",
+                color=discord.Color.from_str(config["color"]),
+            )
+
+            channel = self.bot.get_channel(1000763776095752302)
+            # for each amount of invites, create a new invite
+            for i in range(amount):
+                invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
+                                                     reason="Tryout invite")
+                self.invites[context.guild.id] = await context.guild.invites()
+                json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
+
+                if os.path.exists(json_path):
+                    with open(json_path, "r") as f:
+                        file_content = f.read()
+                        if file_content:
+                            tryout_data = json.loads(file_content)
+                        else:
+                            tryout_data = {}  # Initialize as empty dictionary if the file is empty
+
+                role_name = f"OW | {stripped_team_name} Tryout"
+                tryout_data[str(invite.code)] = role_name
+
+                with open(json_path, "w") as f:
+                    json.dump(tryout_data, f)
+
+                embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
 
         await context.send(embed=embed)
 
+    @commands.hybrid_command(
+        name="ringer",
+        description="Creates a tryout invite for the specified team.",
+    )
+    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
+    async def ringer(self, context: Context, team: str, amount: int = 1, member: discord.Member = None) -> None:
+        """
+        Creates a ringer invite for the specified team.
 
-# And then we finally add the cog to the bot so that it can load, unload, reload and use it's content.
+        :param context: The context of the command.
+        :param team: The name of the team.
+        :param amount: The amount of invites to create.
+        :param member: The member to give tryout to.
+        """
+        await context.defer()
+        team = self.standardize_team_name(team)
+        stripped_team_name = team.replace("Alternate ", "").strip()
+
+        team = await self.bot.database.get_team(team)
+        if not team:
+            embed = discord.Embed(
+                title="Team not found",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        if member:
+            role_name = f"OW | {stripped_team_name} Ringer"
+            role = discord.utils.get(context.guild.roles, name=role_name)
+            if not role:
+                embed = discord.Embed(
+                    title="Ringer role not found",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+
+            await member.add_roles(role)
+            embed = discord.Embed(
+                title=f"{team[0]} ringer given to {member.display_name}",
+                color=discord.Color.from_str(config["color"]),
+            )
+        else:
+
+            embed = discord.Embed(
+                title="Ringer invite created",
+                description=f"**Team:** {team[0]}",
+                color=discord.Color.from_str(config["color"]),
+            )
+
+            channel = self.bot.get_channel(1000763776095752302)
+            # for each amount of invites, create a new invite
+            for i in range(amount):
+                invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
+                                                     reason="Ringer invite")
+                self.invites[context.guild.id] = await context.guild.invites()
+                json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
+
+                if os.path.exists(json_path):
+                    with open(json_path, "r") as f:
+                        file_content = f.read()
+                        if file_content:
+                            tryout_data = json.loads(file_content)
+                        else:
+                            tryout_data = {}  # Initialize as empty dictionary if the file is empty
+
+                role_name = f"OW | {stripped_team_name} Ringer"
+                tryout_data[str(invite.code)] = role_name
+
+                with open(json_path, "w") as f:
+                    json.dump(tryout_data, f)
+
+                embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
+
+        await context.send(embed=embed)
+
+    @commands.hybrid_command(
+        name="cut",
+        description="Cuts a tryout from the specified team."
+    )
+    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
+    async def cut(self, context: Context, team: str, member: discord.Member) -> None:
+        """
+        Cuts a tryout from the specified team.
+
+        :param context: The context of the command.
+        :param team: The name of the team.
+        :param member: The member to cut.
+        """
+        await context.defer(ephemeral=True)
+        team = self.standardize_team_name(team)
+        team = await self.bot.database.get_team(team)
+        if not team:
+            embed = discord.Embed(
+                title="Team not found",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        role_name = f"OW | {team[0].replace('Alternate ', '').strip()} Tryout"
+        role = discord.utils.get(context.guild.roles, name=role_name)
+        if not role:
+            embed = discord.Embed(
+                title="Tryout role not found",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        await member.remove_roles(role)
+        embed = discord.Embed(
+            title="Tryout cut",
+            color=discord.Color.from_str(config["color"]),
+        )
+        await context.send(embed=embed, ephemeral=True)
+
+
 async def setup(bot) -> None:
     await bot.add_cog(Team(bot))

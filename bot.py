@@ -12,6 +12,7 @@ import os
 import platform
 import random
 import sys
+import re
 
 import aiosqlite
 import discord
@@ -222,6 +223,20 @@ class DiscordBot(commands.Bot):
         """
         if message.author == self.user or message.author.bot:
             return
+        # Check if the message is in the channel with the ID 1053462751240003594
+        if message.channel.id == 1053462751240003594:
+            pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s]+)?$'
+            match = re.match(pattern, message.content)
+            if match:
+                quote_text = match.group(1)
+                thread = await message.create_thread(
+                    name=quote_text
+                )
+                await thread.send(f'Quote thread for: "{quote_text}"')
+            else:
+                await message.delete()
+                await message.channel.send(f'{message.author.mention}, only quotes are allowed here.', delete_after=5)
+
         await self.process_commands(message)
 
     async def on_command_completion(self, context: Context) -> None:
