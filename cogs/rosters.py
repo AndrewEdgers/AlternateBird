@@ -42,7 +42,6 @@ class ConfirmModal(discord.ui.Modal, title="Confirm Delete"):
 
     async def on_submit(self, interaction: discord.Interaction):
         if self.name.value == self.actual_team_name:
-            print("Names match. Setting should_delete to True")  # Debugging line
             await interaction.response.send_message(f'Deleting {self.name.value}!', ephemeral=True, delete_after=5)
             self.should_delete = True
             self.submitted.set()
@@ -70,12 +69,11 @@ class ConfirmView(discord.ui.View):
 
     @discord.ui.button(label="Confirm Delete", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # await interaction.response.send_message(content='Confirming', ephemeral=True)
         await interaction.response.send_modal(self.modal)
 
     @discord.ui.button(label="Cancel Delete", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message('Cancelling', ephemeral=True)
+        await interaction.response.send_message(f'Deletion of {self.actual_team_name} cancelled', ephemeral=True)
         self.value = False
         self.stop()
 
