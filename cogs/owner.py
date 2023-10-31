@@ -495,6 +495,40 @@ class Owner(commands.Cog, name="owner"):
         )
         await context.send(embed=embed, ephemeral=True)
 
+    @commands.hybrid_command(
+        name="include",
+        description="Includes a channel in the gif spam filter. (all channels are included by default)",
+    )
+    @app_commands.describe(channel="The channel to include.")
+    @commands.is_owner()
+    async def include(self, context: Context, channel: discord.TextChannel) -> None:
+        """
+        Includes a channel in the gif spam filter.
+
+        :param context: The hybrid command context.
+        :param channel: The channel to include.
+        """
+        if channel.id not in self.bot.excluded_channels:
+            embed = discord.Embed(
+                description=f"{channel.mention} is already included.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        self.bot.excluded_channels.remove(channel.id)
+
+        # Update the JSON file
+        with open('configs/excluded_channels.json', 'w') as f:
+            json.dump(list(self.bot.excluded_channels), f)  # Convert set to list for JSON serialization
+
+        embed = discord.Embed(
+            description=f"{channel.mention} has been included.",
+            color=discord.Color.from_str(config["color"]),
+        )
+        await context.send(embed=embed, ephemeral=True)
+
+
 
 async def setup(bot) -> None:
     await bot.add_cog(Owner(bot))
