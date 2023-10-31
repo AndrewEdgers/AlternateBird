@@ -25,6 +25,11 @@ class Owner(commands.Cog, name="owner"):
     def __init__(self, bot) -> None:
         self.bot = bot
 
+        # Load the excluded channel IDs from the JSON file into a set
+        config_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/excluded_channels.json"
+        with open(config_path, 'r') as f:
+            self.excluded_channels = set(json.load(f))
+
     @commands.command(
         name="sync",
         description="Synchronizes the slash commands.",
@@ -366,6 +371,7 @@ class Owner(commands.Cog, name="owner"):
             )
             await context.send(embed=embed, ephemeral=True)
 
+    '''
     @servers.command(
         base="servers",
         name="list",
@@ -454,6 +460,40 @@ class Owner(commands.Cog, name="owner"):
             await context.send(embed=discord.Embed(
                 description="Couldn't add any roles or create a new role due to permission issues.",
                 color=discord.Color.from_str(config["color"])), ephemeral=True)
+            '''
+
+    @commands.hybrid_command(
+        name="exclude",
+        description="Excludes a channel from the gif spam filter.",
+    )
+    @app_commands.describe(channel="The channel to exclude.")
+    @commands.is_owner()
+    async def exclude(self, context: Context, channel: discord.TextChannel) -> None:
+        """
+        Excludes a channel from the gif spam filter.
+
+        :param context: The hybrid command context.
+        :param channel: The channel to exclude.
+        """
+        if channel.id in self.bot.excluded_channels:
+            embed = discord.Embed(
+                description=f"{channel.mention} is already excluded.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        self.bot.excluded_channels.add(channel.id)
+
+        # Update the JSON file
+        with open('configs/excluded_channels.json', 'w') as f:
+            json.dump(list(self.bot.excluded_channels), f)  # Convert set to list for JSON serialization
+
+        embed = discord.Embed(
+            description=f"{channel.mention} has been excluded.",
+            color=discord.Color.from_str(config["color"]),
+        )
+        await context.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot) -> None:

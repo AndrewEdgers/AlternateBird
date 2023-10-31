@@ -13,6 +13,8 @@ import platform
 import random
 import sys
 import re
+from collections import deque
+from datetime import datetime
 
 import aiosqlite
 import discord
@@ -142,6 +144,13 @@ class DiscordBot(commands.Bot):
         self.logger = logger
         self.config = config
         self.database = None
+        self.tenor_spam_cache = {}
+        self.spam_triggered_time = {}
+
+        # Load the excluded channel IDs from the JSON file into a set
+        config_path = f"{os.path.realpath(os.path.dirname(__file__))}/configs/excluded_channels.json"
+        with open(config_path, 'r') as f:
+            self.excluded_channels = set(json.load(f))
 
     async def init_db(self) -> None:
         async with aiosqlite.connect(
@@ -223,6 +232,7 @@ class DiscordBot(commands.Bot):
         """
         if message.author == self.user or message.author.bot:
             return
+
         # Check if the message is in the channel with the ID 1053462751240003594
         if message.channel.id == 1053462751240003594:
             pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
@@ -236,6 +246,35 @@ class DiscordBot(commands.Bot):
             else:
                 await message.channel.send(f'{message.author.mention}, only quotes are allowed here.', delete_after=5)
                 await message.delete()
+
+        if message.channel.id not in self.excluded_channels:
+            # Initialize the cache for the channel if it doesn't exist
+            self.tenor_spam_cache.setdefault(message.channel.id, deque(maxlen=3))
+            self.spam_triggered_time.setdefault(message.channel.id, None)
+
+            # Current time in UTC
+            now = datetime.utcnow()
+
+            # Check if the message contains a Tenor link
+            if "tenor.com/view/" in message.content:
+                # If spam was previously triggered, delete all Tenor links for 10 seconds
+                if self.spam_triggered_time.get(message.channel.id):
+                    if (now - self.spam_triggered_time.get(message.channel.id)).total_seconds() <= 15:
+                        await message.delete()
+                        return
+
+                # Add the message and its timestamp to the cache
+                self.tenor_spam_cache[message.channel.id].append((message, now))
+
+                # Check if the last 3 messages were sent within 10 seconds
+                if len(self.tenor_spam_cache[message.channel.id]) == 3:
+                    oldest_time = self.tenor_spam_cache[message.channel.id][0][1]
+                    newest_time = self.tenor_spam_cache[message.channel.id][-1][1]
+
+                    if (newest_time - oldest_time).total_seconds() <= 10:
+                        await message.delete()  # Delete the third GIF
+                        self.spam_triggered_time[message.channel.id] = now
+                        await message.channel.send("No GIF spamming, please!", delete_after=16)
 
         await self.process_commands(message)
 
