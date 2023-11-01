@@ -23,7 +23,11 @@ else:
     with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
         config = json.load(file)
 
+
 class Moderation(commands.Cog, name="moderation"):
+    """
+    Moderation related commands.
+    """
     def __init__(self, bot) -> None:
         self.bot = bot
 
@@ -38,7 +42,7 @@ class Moderation(commands.Cog, name="moderation"):
         reason="The reason why the user should be kicked.",
     )
     async def kick(
-        self, context: Context, user: discord.User, *, reason: str = "Not specified"
+            self, context: Context, user: discord.User, *, reason: str = "Not specified"
     ) -> None:
         """
         Kick a user out of the server.
@@ -89,7 +93,7 @@ class Moderation(commands.Cog, name="moderation"):
         nickname="The new nickname that should be set.",
     )
     async def nick(
-        self, context: Context, user: discord.User, *, nickname: str = None
+            self, context: Context, user: discord.User, *, nickname: str = None
     ) -> None:
         """
         Change the nickname of a user on a server.
@@ -126,7 +130,7 @@ class Moderation(commands.Cog, name="moderation"):
         reason="The reason why the user should be banned.",
     )
     async def ban(
-        self, context: Context, user: discord.User, *, reason: str = "Not specified"
+            self, context: Context, user: discord.User, *, reason: str = "Not specified"
     ) -> None:
         """
         Bans a user from the server.
@@ -195,7 +199,7 @@ class Moderation(commands.Cog, name="moderation"):
         reason="The reason why the user should be warned.",
     )
     async def warning_add(
-        self, context: Context, user: discord.User, *, reason: str = "Not specified"
+            self, context: Context, user: discord.User, *, reason: str = "Not specified"
     ) -> None:
         """
         Warns a user in his private messages.
@@ -236,7 +240,7 @@ class Moderation(commands.Cog, name="moderation"):
         warn_id="The ID of the warning that should be removed.",
     )
     async def warning_remove(
-        self, context: Context, user: discord.User, warn_id: int
+            self, context: Context, user: discord.User, warn_id: int
     ) -> None:
         """
         Warns a user in his private messages.
@@ -298,7 +302,7 @@ class Moderation(commands.Cog, name="moderation"):
         )  # Bit of a hacky way to make sure the bot responds to the interaction and doens't get a "Unknown Interaction" response
         purged_messages = await context.channel.purge(limit=amount + 1)
         embed = discord.Embed(
-            description=f"**{context.author}** cleared **{len(purged_messages)-1}** messages!",
+            description=f"**{context.author}** cleared **{len(purged_messages) - 1}** messages!",
             color=discord.Color.from_str(config["color"]),
         )
         await context.channel.send(embed=embed)
@@ -314,7 +318,7 @@ class Moderation(commands.Cog, name="moderation"):
         reason="The reason why the user should be banned.",
     )
     async def hackban(
-        self, context: Context, user_id: str, *, reason: str = "Not specified"
+            self, context: Context, user_id: str, *, reason: str = "Not specified"
     ) -> None:
         """
         Bans a user without the user having to be in the server.
@@ -361,7 +365,7 @@ class Moderation(commands.Cog, name="moderation"):
                 f'Archived messages from: #{context.channel} ({context.channel.id}) in the guild "{context.guild}" ({context.guild.id}) at {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}\n'
             )
             async for message in context.channel.history(
-                limit=limit, before=context.message
+                    limit=limit, before=context.message
             ):
                 attachments = []
                 for attachment in message.attachments:

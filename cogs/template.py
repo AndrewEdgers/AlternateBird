@@ -20,8 +20,12 @@ else:
     with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
         config = json.load(file)
 
+
 # Here we name the cog and create a new class for the cog.
 class Template(commands.Cog, name="template"):
+    """
+    This is a template cog.
+    """
     def __init__(self, bot) -> None:
         self.bot = bot
 

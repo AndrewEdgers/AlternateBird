@@ -24,6 +24,9 @@ else:
 
 # Here we name the cog and create a new class for the cog.
 class Team(commands.Cog, name="team"):
+    """
+    Team commands handle various functionalities related to teams.
+    """
     def __init__(self, bot) -> None:
         self.bot = bot
         self.logger = logging.getLogger("discord_bot")

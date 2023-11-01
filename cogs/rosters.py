@@ -78,7 +78,11 @@ class ConfirmView(discord.ui.View):
         self.stop()
 
 
-class Roster(commands.Cog, name="rosters"):
+class Roster(commands.Cog, name="roster"):
+    """
+    Roster commands provide functionalities for managing rosters of teams.
+    """
+
     def __init__(self, bot) -> None:
         self.bot = bot
         self.context_menu_roster = app_commands.ContextMenu(

@@ -94,6 +94,9 @@ class RockPaperScissorsView(discord.ui.View):
 
 
 class Fun(commands.Cog, name="fun"):
+    """
+    Fun commands. 🎉
+    """
     def __init__(self, bot) -> None:
         self.bot = bot
 

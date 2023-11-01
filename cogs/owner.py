@@ -22,6 +22,9 @@ else:
 
 
 class Owner(commands.Cog, name="owner"):
+    """
+    Commands for the owners of the bot.
+    """
     def __init__(self, bot) -> None:
         self.bot = bot
 

@@ -18,6 +18,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
+from discord.ui import View, Select
 
 if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -26,7 +27,63 @@ else:
         config = json.load(file)
 
 
+class HelpSelect(Select):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(
+            placeholder="Select a category...",
+            options=[
+                discord.SelectOption(label=cog_name.capitalize(), description=cog.__doc__) for cog_name, cog in
+                bot.cogs.items() if
+                cog.__cog_commands__ and cog_name not in ["Jishaku"]
+            ])
+
+        self.bot = bot
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        selected_cog = self.values[0]
+        await self.send_command_help(interaction, selected_cog)
+
+    async def send_command_help(self, interaction: discord.Interaction, cog_name: str) -> None:
+        cog = self.bot.get_cog(cog_name.lower())
+        prefix = "/"
+        embed = discord.Embed(
+            title=f"<:Lightteal:1082786810662498304> Help for {cog_name.capitalize()} <:Lightteal:1082786810662498304>",
+            description="**List of available commands:**",
+            color=discord.Color.from_str(config["color"]),
+        )
+
+        for command in cog.get_commands():
+            description = command.description.partition("\n")[0]
+            cmd_id = self.bot.cached_command_ids.get(command.name, "Unknown")
+
+            def format_command_name(name, id):
+                return f"<{prefix}{name}:{id}>" if id != "Unknown" else f"!{name}"
+
+            if hasattr(command, 'commands'):
+                for subcommand in command.commands:
+                    sub_desc = subcommand.description.partition("\n")[0]
+                    formatted_name = format_command_name(f"{command.name} {subcommand.name}", cmd_id)
+                    embed.add_field(
+                        name=formatted_name,
+                        value=f"`{sub_desc}`",
+                        inline=False
+                    )
+            else:
+                formatted_name = format_command_name(command.name, cmd_id)
+                embed.add_field(
+                    name=formatted_name,
+                    value=f"`{description}`",
+                    inline=False
+                )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True, delete_after=25)
+
+
 class General(commands.Cog, name="general"):
+    """
+    General commands that provide information about the bot or the server.
+    """
+
     def __init__(self, bot) -> None:
         self.bot = bot
         self.context_menu_user = app_commands.ContextMenu(
@@ -79,51 +136,76 @@ class General(commands.Cog, name="general"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @commands.hybrid_command(
-        name="help", description="List all commands the bot has loaded."
+        name="help", description="List all available commands."
     )
     async def help(self, context: Context) -> None:
-        prefix = "/"
         embed = discord.Embed(
             title="Help",
-            description="**List of available commands:**",
+            description="**Select a category to get more information.**",
             color=discord.Color.from_str(config["color"]),
         )
-        # embed.set_thumbnail(url="https://alt-esports.x3.pm/i/8d0lk.gif")
 
-        for i in self.bot.cogs:
-            if i == "owner" and not (await self.bot.is_owner(context.author)):
-                continue
-            cog = self.bot.get_cog(i.lower())
-            data = []
-            for command in cog.get_commands():
-                description = command.description.partition("\n")[0]
-                cmd_id = self.bot.cached_command_ids.get(command.name, "Unknown")
+        for cog_name, cog in self.bot.cogs.items():
+            description = cog.__doc__[:97] + "..." if len(cog.__doc__) > 100 else cog.__doc__
+            # strip description off of newlines and whitespace at the end and beginning
+            description = description.strip()
 
-                # Function to format command name with or without ID
-                def format_command_name(name, id):
-                    return f"<{prefix}{name}:{id}>" if id != "Unknown" else f"!{name}"
+            if cog.__doc__:  # Only add cogs that have a docstring description
+                embed.add_field(
+                    name=cog_name.capitalize(),
+                    value=f"`{description}`",
+                    inline=False
+                )
 
-                # Check if this is a parent command
-                if hasattr(command, 'commands'):
-                    for subcommand in command.commands:
-                        sub_desc = subcommand.description.partition("\n")[0]
-                        formatted_name = format_command_name(f"{command.name} {subcommand.name}", cmd_id)
-                        data.append(f"{formatted_name} - `{sub_desc}`")
-                else:
-                    formatted_name = format_command_name(command.name, cmd_id)
-                    data.append(f"{formatted_name} - `{description}`")
+        view = View().add_item(HelpSelect(self.bot))
+        await context.send(embed=embed, view=view, delete_after=90)
 
-            help_text = "\n".join(data)
-            embed.add_field(
-                name='\u200b',
-                value="``` ```",
-                inline=False
-            )
-            embed.add_field(
-                name=f"<:Lightteal:1082786810662498304> {i.capitalize()} <:Lightteal:1082786810662498304>",
-                value=f"{help_text}", inline=False
-            )
-        await context.send(embed=embed, delete_after=90)
+    # @commands.hybrid_command(
+    #     name="help", description="List all commands the bot has loaded."
+    # )
+    # async def help(self, context: Context) -> None:
+    #     prefix = "/"
+    #     embed = discord.Embed(
+    #         title="Help",
+    #         description="**List of available commands:**",
+    #         color=discord.Color.from_str(config["color"]),
+    #     )
+    #     # embed.set_thumbnail(url="https://alt-esports.x3.pm/i/8d0lk.gif")
+    #
+    #     for i in self.bot.cogs:
+    #         if i == "owner" and not (await self.bot.is_owner(context.author)):
+    #             continue
+    #         cog = self.bot.get_cog(i.lower())
+    #         data = []
+    #         for command in cog.get_commands():
+    #             description = command.description.partition("\n")[0]
+    #             cmd_id = self.bot.cached_command_ids.get(command.name, "Unknown")
+    #
+    #             # Function to format command name with or without ID
+    #             def format_command_name(name, id):
+    #                 return f"<{prefix}{name}:{id}>" if id != "Unknown" else f"!{name}"
+    #
+    #             # Check if this is a parent command
+    #             if hasattr(command, 'commands'):
+    #                 for subcommand in command.commands:
+    #                     sub_desc = subcommand.description.partition("\n")[0]
+    #                     formatted_name = format_command_name(f"{command.name} {subcommand.name}", cmd_id)
+    #                     data.append(f"{formatted_name} - `{sub_desc}`")
+    #             else:
+    #                 formatted_name = format_command_name(command.name, cmd_id)
+    #                 data.append(f"{formatted_name} - `{description}`")
+    #
+    #         help_text = "\n".join(data)
+    #         embed.add_field(
+    #             name='\u200b',
+    #             value="``` ```",
+    #             inline=False
+    #         )
+    #         embed.add_field(
+    #             name=f"<:Lightteal:1082786810662498304> {i.capitalize()} <:Lightteal:1082786810662498304>",
+    #             value=f"{help_text}", inline=False
+    #         )
+    #     await context.send(embed=embed, delete_after=90)
 
     @commands.hybrid_command(
         name="botinfo",
