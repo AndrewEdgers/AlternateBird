@@ -522,7 +522,7 @@ class Roster(commands.Cog, name="roster"):
         name="team",
         description="Lists, create, edit and delete Alternate eSports teams.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def team(self, context: Context) -> None:
         """
         Lists, create, edit and delete all Alternate eSports team rosters.
@@ -543,7 +543,7 @@ class Roster(commands.Cog, name="roster"):
         name="list",
         description="List all Alternate eSports team rosters.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def list_team(self, context: Context) -> None:
         """
         List all Alternate eSports team rosters.
@@ -753,7 +753,7 @@ class Roster(commands.Cog, name="roster"):
         name="player",
         description="Lists, sign, release and edit Alternate eSports players.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team", "Technician Team")
     async def player(self, context: Context) -> None:
         """
         Lists, sign, release and edit Alternate eSports players.
@@ -816,7 +816,7 @@ class Roster(commands.Cog, name="roster"):
         name="update",
         description="Updates the roster message.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def update_player(self, context: Context, team: str) -> None:
         """
         Updates the roster message_obj.
@@ -862,7 +862,7 @@ class Roster(commands.Cog, name="roster"):
     )
     @app_commands.describe(member="The id of the player to sign.", team="The team to sign the player to.",
                            role="The role of the player to sign.")
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Technician Team")
     @app_commands.choices(role=[Choice(name="Main Tank", value="Main Tank"),
                                 Choice(name="Off Tank", value="Off Tank"),
                                 Choice(name="Hitscan DPS", value="Hitscan DPS"),
@@ -908,7 +908,7 @@ class Roster(commands.Cog, name="roster"):
             roles_to_remove.append(trial_coach)
 
         roles_to_add = []
-        if role in ["Manager", "Head Coach", "Assistant Coach"]:
+        if role in ["Manager", "Head Coach", "Assistant Coach", "Technician Team"]:
             if role == "Manager":
                 roles_to_add.append(team_manager)
                 roles_to_add.append(manager)
