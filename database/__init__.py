@@ -116,7 +116,7 @@ class DatabaseManager:
 
             if new_name is not None:
                 fields.append("team_name = ?")
-                values.append("Alternate" + new_name)
+                values.append(new_name)
             if color is not None:
                 fields.append("color = ?")
                 values.append(color)

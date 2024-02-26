@@ -272,7 +272,7 @@ class Team(commands.Cog, name="team"):
 
     @commands.hybrid_command(
         name="cut",
-        description="Cuts a tryout from the specified team."
+        description="Cuts a tryout or ringer from the specified team."
     )
     @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
     async def cut(self, context: Context, team: str, member: discord.Member) -> None:
@@ -294,22 +294,39 @@ class Team(commands.Cog, name="team"):
             await context.send(embed=embed, ephemeral=True)
             return
 
-        role_name = f"OW | {team[0].replace('Alternate ', '').strip()} Tryout"
-        role = discord.utils.get(context.guild.roles, name=role_name)
-        if not role:
+        tryout = f"OW | {team[0].replace('Alternate ', '').strip()} Tryout"
+        ringer = f"OW | {team[0].replace('Alternate ', '').strip()} Ringer"
+        tryout_role = discord.utils.get(context.guild.roles, name=tryout)
+        ringer_role = discord.utils.get(context.guild.roles, name=ringer)
+        if not tryout_role:
             embed = discord.Embed(
                 title="Tryout role not found",
                 color=0xE02B2B,
             )
             await context.send(embed=embed, ephemeral=True)
             return
+        elif not ringer_role:
+            embed = discord.Embed(
+                title="Ringer role not found",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
 
-        await member.remove_roles(role)
-        embed = discord.Embed(
-            title="Tryout cut",
-            color=discord.Color.from_str(config["color"]),
-        )
-        await context.send(embed=embed, ephemeral=True)
+        if tryout_role in member.roles:
+            await member.remove_roles(tryout_role)
+            embed = discord.Embed(
+                title=f"{member.display_name} cut from {team[0]} tryouts",
+                color=discord.Color.from_str(config["color"]),
+            )
+            await context.send(embed=embed, ephemeral=True)
+        elif ringer_role in member.roles:
+            await member.remove_roles(ringer_role)
+            embed = discord.Embed(
+                title=f"{member.display_name} cut from {team[0]} ringers",
+                color=discord.Color.from_str(config["color"]),
+            )
+            await context.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot) -> None:

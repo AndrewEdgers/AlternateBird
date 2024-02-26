@@ -647,6 +647,7 @@ class Roster(commands.Cog, name="roster"):
         :param new_rank: The new rank for the team.
         """
         name = self.standardize_team_name(name)
+        new_name = self.standardize_team_name(new_name) if new_name else None
 
         existing_team = await self.bot.database.get_team(name)
         if not existing_team:
@@ -753,7 +754,8 @@ class Roster(commands.Cog, name="roster"):
         name="player",
         description="Lists, sign, release and edit Alternate eSports players.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team", "Technician Team")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team",
+                           "Technician Team")
     async def player(self, context: Context) -> None:
         """
         Lists, sign, release and edit Alternate eSports players.

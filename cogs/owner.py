@@ -25,6 +25,7 @@ class Owner(commands.Cog, name="owner"):
     """
     Commands for the owners of the bot.
     """
+
     def __init__(self, bot) -> None:
         self.bot = bot
 
@@ -374,7 +375,6 @@ class Owner(commands.Cog, name="owner"):
             )
             await context.send(embed=embed, ephemeral=True)
 
-    '''
     @servers.command(
         base="servers",
         name="list",
@@ -463,7 +463,6 @@ class Owner(commands.Cog, name="owner"):
             await context.send(embed=discord.Embed(
                 description="Couldn't add any roles or create a new role due to permission issues.",
                 color=discord.Color.from_str(config["color"])), ephemeral=True)
-            '''
 
     @commands.hybrid_command(
         name="exclude",
@@ -530,7 +529,6 @@ class Owner(commands.Cog, name="owner"):
             color=discord.Color.from_str(config["color"]),
         )
         await context.send(embed=embed, ephemeral=True)
-
 
 
 async def setup(bot) -> None:

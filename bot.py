@@ -235,7 +235,7 @@ class DiscordBot(commands.Bot):
 
         # Check if the message is in the channel with the ID 1053462751240003594
         if message.channel.id == 1053462751240003594:
-            pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
+            pattern = r'^[\"\‘\’\“\”\«\»]\s*(.+?)\s*[\"\‘\’\“\”\«\»]\s*-?\s*@?([\w\s@#<>]+)$' # pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
             match = re.match(pattern, message.content)
             if match:
                 quote_text = match.group(1)
