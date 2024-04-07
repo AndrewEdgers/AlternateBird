@@ -121,7 +121,7 @@ class Team(commands.Cog, name="team"):
         description="Creates a tryout invite for the specified team.",
     )
     @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def tryout(self, context: Context, team: str, amount: int = 1, member: discord.Member = None) -> None:
+    async def tryout(self, context: Context, amount: int = 1, team: str = None, member: discord.Member = None) -> None:
         """
         Creates a tryout invite for the specified team.
 
@@ -130,8 +130,28 @@ class Team(commands.Cog, name="team"):
         :param amount: The amount of invites to create.
         :param member: The member to give tryout to.
         """
+        if team is None:
+            if await self.team_affiliation(context.author) == "Team does not exist.":
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+                embed = discord.Embed(
+                    title="Please specify your team.",
+                    description="You are affiliated with multiple teams.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            else:
+                team = await self.team_affiliation(context.author)
+        else:
+            team = self.standardize_team_name(team)
+
         await context.defer()
-        team = self.standardize_team_name(team)
         stripped_team_name = team.replace("Alternate ", "").strip()
 
         team = await self.bot.database.get_team(team)
@@ -198,7 +218,7 @@ class Team(commands.Cog, name="team"):
         description="Creates a tryout invite for the specified team.",
     )
     @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def ringer(self, context: Context, team: str, amount: int = 1, member: discord.Member = None) -> None:
+    async def ringer(self, context: Context, amount: int = 1, team: str = None, member: discord.Member = None) -> None:
         """
         Creates a ringer invite for the specified team.
 
@@ -207,8 +227,28 @@ class Team(commands.Cog, name="team"):
         :param amount: The amount of invites to create.
         :param member: The member to give tryout to.
         """
+        if team is None:
+            if await self.team_affiliation(context.author) == "Team does not exist.":
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+                embed = discord.Embed(
+                    title="Please specify your team.",
+                    description="You are affiliated with multiple teams.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            else:
+                team = await self.team_affiliation(context.author)
+        else:
+            team = self.standardize_team_name(team)
+
         await context.defer()
-        team = self.standardize_team_name(team)
         stripped_team_name = team.replace("Alternate ", "").strip()
 
         team = await self.bot.database.get_team(team)
@@ -275,7 +315,7 @@ class Team(commands.Cog, name="team"):
         description="Cuts a tryout or ringer from the specified team."
     )
     @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def cut(self, context: Context, team: str, member: discord.Member) -> None:
+    async def cut(self, context: Context, member: discord.Member, team: str = None) -> None:
         """
         Cuts a tryout from the specified team.
 
@@ -283,8 +323,28 @@ class Team(commands.Cog, name="team"):
         :param team: The name of the team.
         :param member: The member to cut.
         """
+        if team is None:
+            if await self.team_affiliation(context.author) == "Team does not exist.":
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+                embed = discord.Embed(
+                    title="Please specify your team.",
+                    description="You are affiliated with multiple teams.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            else:
+                team = await self.team_affiliation(context.author)
+        else:
+            team = self.standardize_team_name(team)
+
         await context.defer(ephemeral=True)
-        team = self.standardize_team_name(team)
         team = await self.bot.database.get_team(team)
         if not team:
             embed = discord.Embed(
