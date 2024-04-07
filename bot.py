@@ -181,7 +181,7 @@ class DiscordBot(commands.Bot):
     @tasks.loop(minutes=1.0)
     async def status_task(self) -> None:
         """
-        Setup the game status task of the bot.
+        Set up the game status task of the bot.
         """
         statuses = config["statuses"]
         await self.change_presence(activity=discord.Game(random.choice(statuses)))
