@@ -181,7 +181,7 @@ class DiscordBot(commands.Bot):
     @tasks.loop(minutes=1.0)
     async def status_task(self) -> None:
         """
-        Setup the game status task of the bot.
+        Set up the game status task of the bot.
         """
         statuses = config["statuses"]
         await self.change_presence(activity=discord.Game(random.choice(statuses)))
@@ -235,7 +235,7 @@ class DiscordBot(commands.Bot):
 
         # Check if the message is in the channel with the ID 1053462751240003594
         if message.channel.id == 1053462751240003594:
-            pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
+            pattern = r'^[\"\‘\’\“\”\«\»]\s*(.+?)\s*[\"\‘\’\“\”\«\»]\s*-?\s*@?([\w\s@#<>]+)$' # pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
             match = re.match(pattern, message.content)
             if match:
                 quote_text = match.group(1)

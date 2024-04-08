@@ -116,7 +116,7 @@ class DatabaseManager:
 
             if new_name is not None:
                 fields.append("team_name = ?")
-                values.append("Alternate" + new_name)
+                values.append(new_name)
             if color is not None:
                 fields.append("color = ?")
                 values.append(color)
@@ -159,6 +159,12 @@ class DatabaseManager:
         async with self.connection.cursor() as cursor:
             await cursor.execute("SELECT * FROM teams")
             return await cursor.fetchall()
+
+    async def get_player_team(self, player_id: int):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT team_name FROM players WHERE player_id = ?", (player_id,))
+            result = await cursor.fetchone()
+            return result[0] if result else None
 
     async def add_player(self, player_id: int, team_name: str, role: str):
         async with self.connection.cursor() as cursor:

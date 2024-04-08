@@ -11,7 +11,7 @@ import os
 import sys
 
 import discord
-from discord import app_commands
+from discord import app_commands, Embed
 from discord.app_commands import Choice
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -90,6 +90,7 @@ class Roster(commands.Cog, name="roster"):
         )
         self.bot.tree.add_command(self.context_menu_roster)
 
+
     @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
     async def update_all_messages(self, interaction: discord.Interaction, message: discord.Message) -> None:
         """
@@ -150,6 +151,32 @@ class Roster(commands.Cog, name="roster"):
         # Finally, send the message as a follow-up to the deferred interaction
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    async def team_affiliation(self, member: discord.Member) -> str:
+        roles = [role.name for role in member.roles]
+        qualifying_roles = [
+            role for role in roles
+            if role.startswith("OW |") and role.split()[-1] in {"Manager", "Coach", "Captain"}
+        ]
+
+        # Extract and normalize team names from qualifying roles
+        team_names = set(
+            " ".join(role.split("|")[1].split()[:-1]).strip()
+            for role in qualifying_roles
+        )
+
+        if len(team_names) == 1:
+            team_name = team_names.pop()
+            standardized_team_name = self.standardize_team_name(team_name)
+
+            # Verify the team exists in the database
+            team_info = await self.bot.database.get_team(standardized_team_name)
+            if team_info:
+                return standardized_team_name
+            else:
+                return "Team does not exist."
+        else:
+            return "Sorry, you need to specify your team."
+
     def standardize_team_name(self, team_name: str) -> str:
         words = team_name.split()
         capitalized_words = [word.capitalize() for word in words]
@@ -159,6 +186,17 @@ class Roster(commands.Cog, name="roster"):
             return f"Alternate {capitalized_team_name}"
 
         return capitalized_team_name
+
+    async def update_roster(self, context: Context, team: str) -> bool:
+        team_data = await self.bot.database.get_team(team)
+        color = team_data[1]
+
+        players = await self.bot.database.get_players(team)
+
+        embeds = self.get_players_embed(context, team, color, players)
+
+        await self.fetch_and_update(self.bot, team, embeds)
+        return True
 
     def get_coaches_embed(self, context: Context):
         head_coaches = []
@@ -647,6 +685,7 @@ class Roster(commands.Cog, name="roster"):
         :param new_rank: The new rank for the team.
         """
         name = self.standardize_team_name(name)
+        new_name = self.standardize_team_name(new_name) if new_name else None
 
         existing_team = await self.bot.database.get_team(name)
         if not existing_team:
@@ -753,7 +792,8 @@ class Roster(commands.Cog, name="roster"):
         name="player",
         description="Lists, sign, release and edit Alternate eSports players.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team", "Technician Team")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team",
+                           "Technician Team")
     async def player(self, context: Context) -> None:
         """
         Lists, sign, release and edit Alternate eSports players.
@@ -817,23 +857,33 @@ class Roster(commands.Cog, name="roster"):
         description="Updates the roster message.",
     )
     @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
-    async def update_player(self, context: Context, team: str) -> None:
+    async def update_player(self, context: Context, team: str = None) -> None:
         """
         Updates the roster message_obj.
 
         :param context: The hybrid command context.
         :param team: The team to update the roster for.
         """
-        team = self.standardize_team_name(team)
-
-        # Check if the team exists
-        if not await self.bot.database.get_team(team):
-            embed = discord.Embed(
-                title=f"Team {team} doesn't exist.",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed, ephemeral=True)
-            return
+        if team is None:
+            if await self.team_affiliation(context.author) == "Team does not exist.":
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+                embed = discord.Embed(
+                    title="Please specify your team.",
+                    description="You are affiliated with multiple teams.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            else:
+                team = await self.team_affiliation(context.author)
+        else:
+            team = self.standardize_team_name(team)
 
         embed = discord.Embed(
             title="Updating roster...",
@@ -841,19 +891,18 @@ class Roster(commands.Cog, name="roster"):
         )
         reply = await context.send(embed=embed, ephemeral=True)
 
-        team_data = await self.bot.database.get_team(team)
-        color = team_data[1]
-
-        players = await self.bot.database.get_players(team)
-
-        embeds = self.get_players_embed(context, team, color, players)
-        await self.fetch_and_update(self.bot, team, embeds)
-
-        embed = discord.Embed(
-            title="Roster updated.",
-            color=discord.Color.from_str(config["color"])
-        )
-        await reply.edit(embed=embed, delete_after=5)
+        if await self.update_roster(context, team):
+            embed = discord.Embed(
+                title="Rosters updated.",
+                color=discord.Color.from_str(config["color"])
+            )
+            await reply.edit(embed=embed, delete_after=5)
+        else:
+            embed = discord.Embed(
+                title="Something went wrong",
+                color=0xE02B2B,
+            )
+            await reply.edit(embed=embed, delete_after=5)
 
     @player.command(
         base="player",
@@ -873,7 +922,7 @@ class Roster(commands.Cog, name="roster"):
                                 Choice(name="Head Coach", value="Head Coach"),
                                 Choice(name="Assistant Coach", value="Assistant Coach"),
                                 Choice(name="Manager", value="Manager")])
-    async def sign_player(self, context: Context, member: discord.Member, team: str, role: str) -> None:
+    async def sign_player(self, context: Context, member: discord.Member, role: str, team: str = None) -> None:
         """
         Sign a new player.
 
@@ -882,10 +931,30 @@ class Roster(commands.Cog, name="roster"):
         :param team: The team to sign the player to.
         :param role: The role of the player to sign.
         """
+        if team is None:
+            if await self.team_affiliation(context.author) == "Team does not exist.":
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+                embed = discord.Embed(
+                    title="Please specify your team.",
+                    description="You are affiliated with multiple teams.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            else:
+                team = await self.team_affiliation(context.author)
+        else:
+            team = self.standardize_team_name(team)
+
         await context.interaction.response.defer(ephemeral=True)
         player_id = member.id
         name = member.display_name
-        team = self.standardize_team_name(team)
 
         guild = context.guild
         ow_role = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Team")
@@ -979,6 +1048,19 @@ class Roster(commands.Cog, name="roster"):
                 await member.add_roles(*roles_to_add)
             await context.interaction.followup.send(embed=embed, ephemeral=True)
 
+            if await self.update_roster(context, team):
+                embed = discord.Embed(
+                    title="Rosters updated.",
+                    color=discord.Color.from_str(config["color"])
+                )
+                await context.interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                embed = discord.Embed(
+                    title="Something went wrong",
+                    color=0xE02B2B,
+                )
+                await context.interaction.followup.send(embed=embed, ephemeral=True)
+
     @player.command(
         base="player",
         name="release",
@@ -987,7 +1069,7 @@ class Roster(commands.Cog, name="roster"):
     @app_commands.describe(member="The name of the player to release.", team="The team of the player",
                            role="The role of the player")
     @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
-    async def release_player(self, context: Context, member: discord.Member, team: str,
+    async def release_player(self, context: Context, member: discord.Member, team: str = None,
                              role: str = None) -> None:
         """
         Release an existing player.
@@ -997,10 +1079,30 @@ class Roster(commands.Cog, name="roster"):
         :param role: The role of the player.
         :param team: The team of the player.
         """
+        if team is None:
+            if await self.team_affiliation(context.author) == "Team does not exist.":
+                embed = discord.Embed(
+                    title=f"Team {team} doesn't exist.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+                embed = discord.Embed(
+                    title="Please specify your team.",
+                    description="You are affiliated with multiple teams.",
+                    color=0xE02B2B,
+                )
+                await context.send(embed=embed, ephemeral=True)
+                return
+            else:
+                team = await self.team_affiliation(context.author)
+        else:
+            team = self.standardize_team_name(team)
+
         await context.interaction.response.defer(ephemeral=True)
         player_id = member.id
         name = member.display_name
-        team = self.standardize_team_name(team)
         # Check if the player exists in the database with the given parameters
         existing_entry = await self.bot.database.get_player(player_id)
 
@@ -1034,6 +1136,19 @@ class Roster(commands.Cog, name="roster"):
             color=discord.Color.from_str(config["color"])
         )
         await context.interaction.followup.send(embed=embed, ephemeral=True)
+
+        if await self.update_roster(context, team):
+            embed = discord.Embed(
+                title="Rosters updated.",
+                color=discord.Color.from_str(config["color"])
+            )
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            embed = discord.Embed(
+                title="Something went wrong",
+                color=0xE02B2B,
+            )
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
 
     @player.command(
         base="player",
@@ -1077,6 +1192,22 @@ class Roster(commands.Cog, name="roster"):
             color=discord.Color.from_str(config["color"])
         )
         await context.send(embed=embed, ephemeral=True)
+
+        team = await self.bot.database.get_player_team(player_id)
+        print(team)
+
+        if await self.update_roster(context, team):
+            embed = discord.Embed(
+                title="Rosters updated.",
+                color=discord.Color.from_str(config["color"])
+            )
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            embed = discord.Embed(
+                title="Something went wrong",
+                color=0xE02B2B,
+            )
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot) -> None:
