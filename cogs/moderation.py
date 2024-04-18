@@ -5,10 +5,6 @@ Description:
 
 Version: 6.1.0
 """
-import json
-import os
-import sys
-
 import os
 from datetime import datetime
 
@@ -17,11 +13,9 @@ from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 
-if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
-        config = json.load(file)
+from helpers.methods import load_config
+
+config = load_config()
 
 
 class Moderation(commands.Cog, name="moderation"):

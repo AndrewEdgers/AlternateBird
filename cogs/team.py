@@ -5,21 +5,72 @@ Description:
 
 Version: 6.1.0
 """
+import asyncio
 import json
 import os
-import sys
-import logging
 
 import discord
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.app_commands import Choice
+from discord.ext import commands
 from discord.ext.commands import Context
 
-if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
-        config = json.load(file)
+from typing import List, Dict
+import traceback
+
+from helpers import methods
+
+config = methods.load_config()
+
+
+class ConfirmModal(discord.ui.Modal, title="Confirm Delete"):
+    def __init__(self, actual_team_name):
+        super().__init__()
+        self.should_delete = False
+        self.actual_team_name = actual_team_name
+        self.submitted = asyncio.Event()
+
+    name = discord.ui.TextInput(
+        label='Confirm Team Name',
+        placeholder='Enter the team name to confirm deletion',
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.name.value == self.actual_team_name:
+            await interaction.response.send_message(f'Deleting {self.name.value}!', ephemeral=True, delete_after=5)
+            self.should_delete = True
+            self.submitted.set()
+            self.stop()
+
+        else:
+            await interaction.response.send_message('Team name does not match. Deletion cancelled.', ephemeral=True,
+                                                    delete_after=5)
+            self.should_delete = False
+            self.stop()
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        await interaction.response.send_message('Oops! Something went wrong.', ephemeral=True)
+
+        # Make sure we know what the error actually is
+        traceback.print_exception(type(error), error, error.__traceback__)
+
+
+class ConfirmView(discord.ui.View):
+    def __init__(self, actual_team_name, *, timeout=180):
+        super().__init__(timeout=timeout)
+        self.value = None
+        self.actual_team_name = actual_team_name
+        self.modal = ConfirmModal(self.actual_team_name)
+
+    @discord.ui.button(label="Confirm Delete", style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(self.modal)
+
+    @discord.ui.button(label="Cancel Delete", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message(f'Deletion of {self.actual_team_name} cancelled', ephemeral=True)
+        self.value = False
+        self.stop()
 
 
 # Here we name the cog and create a new class for the cog.
@@ -27,118 +78,378 @@ class Team(commands.Cog, name="team"):
     """
     Team commands handle various functionalities related to teams.
     """
+
     def __init__(self, bot) -> None:
         self.bot = bot
-        self.logger = logging.getLogger("discord_bot")
-        self.invites = {}
-        self.clean_expired_invites.start()
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.logger.debug("On ready started.")
-        for guild in self.bot.guilds:
-            self.invites[guild.id] = await guild.invites()
-            self.logger.debug(f"Cached invites for {guild.name}: {self.invites[guild.id]}")
+    def get_players_embed(self, context: Context, team_status: bool, color: str, players: List[Dict]):
+        roles_order = [
+            ("Staff", ["Head Coach", "Assistant Coach", "Manager"]),
+            ("Players", ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS", "Main Support", "Flex Support"]),
+            ("Substitute", ["Substitute"])
+        ]
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member: discord.Member):
-        print("Member joined:", member.name)  # Debug line
-        guild = member.guild
+        emojis = {
+            "Head Coach": "<:HeadCoach:1159488503437078598>",
+            "Assistant Coach": "<:AHC:1159488404950622218>",
+            "Manager": "<:manager:1159872594502242375>",
+            "Main Tank": "<:tank:1159871555128537241>",
+            "Off Tank": "<:offtank:1159872063322988657>",
+            "Hitscan DPS": "<:hitscan:1159872249843699734>",
+            "Flex DPS": "<:flexdps:1159871979315282000>",
+            "Main Support": "<:mainsupport:1159871872842866828>",
+            "Flex Support": "<:flexsupport:1159871932099989595>",
+            "Substitute": "<:sub:1159872018150338661>"
+        }
 
-        # Read the tryout data from the JSON file
-        json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
-        with open(json_path, "r") as f:
-            tryout_data = json.load(f)
+        roster_dict = {}
+        for _, role_group in roles_order:
+            for role in role_group:
+                roster_dict[role] = []
 
-        # Fetch the new list of invites
-        new_invites = await guild.invites()
+        for player in players:
+            player_id, role = player[0], player[2]
+            member = context.guild.get_member(player_id)
+            if member:
+                username = member.name
+                mention = member.mention
+                roster_dict[role].append(f"{mention} - `{username}`")
 
-        # Find the used invite by comparing old and new invite data
-        used_invite = None
-        for new_invite in new_invites:
-            for cached_invite in self.invites[guild.id]:
-                if new_invite.code == cached_invite.code and new_invite.uses > cached_invite.uses:
-                    used_invite = new_invite
-
-        # Update the cached invites
-        self.invites[guild.id] = new_invites
-
-        if used_invite:  # Check if used_invite is not None
-            role_name = tryout_data.get(str(used_invite.code), None)
-            if role_name:
-                del tryout_data[str(used_invite.code)]
-
-                # Update the JSON file
-                with open(json_path, "w") as f:
-                    json.dump(tryout_data, f)
-
-                # Delete the used invite
-                await used_invite.delete(reason="Invite used, deleting.")
-
-                # Get the role object from the guild based on the role_name
-                role_to_assign = discord.utils.get(guild.roles, name=role_name)
-                if role_to_assign:
-                    await member.add_roles(role_to_assign)
+        embeds = []
+        for category, role_group in roles_order:
+            description_str = ""
+            for role in role_group:
+                emoji = emojis.get(role, "")
+                title = f"{emoji} {role}"
+                if roster_dict[role]:
+                    for username in roster_dict[role]:
+                        description_str += f"**{title}:** {username}\n"
                 else:
-                    self.logger.warning(f"Role {role_name} not found in guild {guild.name}")
+                    if team_status:
+                        description_str += f"**{title}:** *Trialing*\n"
+                    else:
+                        pass
 
-    @tasks.loop(hours=168)
-    async def clean_expired_invites(self):
-        self.logger.info("Cleaning expired invites")
-        channel = await self.bot.fetch_channel(1000763776095752302)
-        json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
+            if description_str:
+                embed = discord.Embed(
+                    description=description_str,
+                    color=discord.Color.from_str(color)
+                )
+                embeds.append(embed)
 
-        with open(json_path, "r") as f:
-            tryout_data = json.load(f)
+        return embeds
 
-        for code in list(tryout_data.keys()):
+    async def fetch_and_update(self, bot, team_name, new_embeds):
+        config_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/message_info.json"
+
+        try:
+            with open(config_path, 'r') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("No data found.")
+            return
+
+        if team_name not in data:
+            print("Team name not found.")
+            return
+
+        to_remove = []  # Store indexes of messages that are not found
+        for idx, info in enumerate(data[team_name]):
+            channel_id = info['channel_id']
+            message_id = info['message_id']
+
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                print(f"Channel {channel_id} not found.")
+                continue
+
+            message = None  # Initialize message variable
             try:
-                invite = await self.bot.fetch_invite(code)
-            except discord.NotFound:  # Invite not found
-                del tryout_data[code]
+                message = await channel.fetch_message(message_id)
+            except discord.errors.NotFound:
+                print(f"Message {message_id} not found.")
+                to_remove.append(idx)  # Mark this message for removal
+                continue  # Skip to the next iteration
 
-        with open(json_path, "w") as f:
-            json.dump(tryout_data, f)
+            if message:  # If message was successfully fetched
+                if isinstance(new_embeds, list):
+                    await message.edit(embeds=new_embeds)
+                else:
+                    await message.edit(embeds=[new_embeds])
 
-    def standardize_team_name(self, team_name: str) -> str:
-        words = team_name.split()
-        capitalized_words = [word.capitalize() for word in words]
-        capitalized_team_name = ' '.join(capitalized_words)
+        # Remove entries for messages that were not found
+        if to_remove:
+            data[team_name] = [info for i, info in enumerate(data[team_name]) if i not in to_remove]
+            with open(config_path, 'w') as f:
+                json.dump(data, f, indent=4)
 
-        if not capitalized_team_name.startswith("Alternate "):
-            return f"Alternate {capitalized_team_name}"
+    async def update_roster(self, context: Context, team: str) -> bool:
+        team_data = await self.bot.database.get_team(team)
+        color = team_data[1]
 
-        return capitalized_team_name
+        players = await self.bot.database.get_players(team)
 
-    # populate string with captain roles from database in format "OW | {stripped_team_name} Captain",
-    # def get_captain_roles(self) -> str:
-    #     for team in self.bot.database.get_teams():
-    #         stripped_team_name = team.replace("Alternate ", "").strip()
-    #         yield f"OW | {stripped_team_name} Captain"
+        team_status = await self.bot.database.get_team_status(team)
 
-    @commands.hybrid_command(
-        name="tryout",
-        description="Creates a tryout invite for the specified team.",
+        embeds = self.get_players_embed(context, team_status, color, players)
+
+        await self.fetch_and_update(self.bot, team, embeds)
+        return True
+
+    @commands.hybrid_group(
+        name="team",
+        description="Lists, create, edit, delete and change trialing status of Alternate eSports teams.",
     )
-    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def tryout(self, context: Context, amount: int = 1, team: str = None, member: discord.Member = None) -> None:
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    async def team(self, context: Context) -> None:
         """
-        Creates a tryout invite for the specified team.
+        Lists, create, edit and delete all Alternate eSports team rosters.
 
-        :param context: The context of the command.
-        :param team: The name of the team.
-        :param amount: The amount of invites to create.
-        :param member: The member to give tryout to.
+        :param context: The hybrid command context.
+        """
+        if context.invoked_subcommand is None:
+            embed = discord.Embed(
+                description="You need to specify a subcommand.\n\n**Subcommands:**\n"
+                            "`list` - List all team.\n`create` - Create a new team.\n"
+                            "`edit` - Edit an existing team.\n`delete` - Delete an existing team.\n"
+                            "`status` - Change trialing status of a team.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+
+    @team.command(
+        base="team",
+        name="list",
+        description="List all Alternate eSports team rosters.",
+    )
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    async def list_team(self, context: Context) -> None:
+        """
+        List all Alternate eSports team rosters.
+
+        :param context: The hybrid command context.
+        """
+        teams = await self.bot.database.get_teams()
+        embed = discord.Embed(
+            title="Alternate eSports Teams",
+            color=discord.Color.from_str(config["color"])
+        )
+
+        for team in teams:
+            embed.add_field(name=team[0], value=f'`{team[1]}`', inline=True)
+
+        await context.send(embed=embed, ephemeral=True)
+
+    @team.command(
+        base="team",
+        name="create",
+        description="Create a new team.",
+    )
+    @app_commands.describe(name="The name of the team to create.", color="The color of the team to create.",
+                           rank="The rank of the team to create. (Optional)")
+    @commands.is_owner()
+    async def create_team(self, context: Context, name: str, color: str, rank: str = None) -> None:
+        """
+        Create a new team.
+
+        :param context: The hybrid command context.
+        :param name: The name of the team to create.
+        :param color: The color of the team to create.
+        :param rank: The rank of the team to create.
+        """
+        name = methods.standardize_team_name(name)
+
+        if await self.bot.database.get_team(name):
+            embed = discord.Embed(
+                title=f"Team {name} already exists.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        global banner_path, message
+        embed = discord.Embed(
+            title=f'Creating {name}...',
+            color=discord.Color.from_str(color)
+        )
+        reply = await context.send(embed=embed, ephemeral=True)
+
+        request = await context.send("Please upload the team banner.", ephemeral=True)
+
+        def check(message):
+            return message.author == context.author and len(message.attachments) > 0
+
+        try:
+            message = await self.bot.wait_for('message', check=check, timeout=60)
+        except asyncio.TimeoutError:
+            await request.edit(content="Time's up. Please try the command again.", delete_after=10)
+        else:
+            attachment = message.attachments[0]
+            banner_path = f'graphics/{attachment.filename}'
+            await attachment.save(banner_path)
+            await context.send(f"Saved banner to {banner_path}", ephemeral=True, delete_after=4)
+            await request.delete()
+
+        await self.bot.database.create_team(name, color, banner_path, rank)
+
+        embed = discord.Embed(
+            title=f'Team {name} created.',
+            color=discord.Color.from_str(color)
+        )
+        await reply.edit(embed=embed, delete_after=5)
+        await message.delete()
+
+    @team.command(
+        base="team",
+        name="edit",
+        description="Edit an existing team.",
+    )
+    @app_commands.describe(
+        name="The name of the team to edit.",
+        new_name="The new name for the team.",
+        new_color="The new color for the team.",
+        new_banner="Change the banner?",
+        new_rank="The new rank for the team."
+    )
+    @app_commands.choices(new_banner=[Choice(name="True", value="True")])
+    @commands.is_owner()
+    async def edit_team(self, context: Context, name: str, new_name: str = None, new_color: str = None,
+                        new_banner: str = None, new_rank: str = None) -> None:
+        """
+        Edit an existing team.
+
+        :param context: The hybrid command context.
+        :param name: The name of the team to edit.
+        :param new_name: The new name for the team.
+        :param new_color: The new color for the team.
+        :param new_banner: The new banner for the team.
+        :param new_rank: The new rank for the team.
+        """
+        name = methods.standardize_team_name(name)
+        new_name = methods.standardize_team_name(new_name) if new_name else None
+
+        existing_team = await self.bot.database.get_team(name)
+        if not existing_team:
+            embed = discord.Embed(
+                title=f"Team {name} doesn't exist.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        # Update what's necessary
+        if new_name or new_color:
+            await self.bot.database.edit_team(name, new_name, new_color, None)
+        if new_banner:
+            # Step 1: Delete the old banner file
+            old_banner_path = existing_team[2]
+            if os.path.exists(old_banner_path):
+                os.remove(old_banner_path)
+
+            # Step 2: Prompt the user to upload a new banner
+            request = await context.send("Please upload the new team banner.", ephemeral=True)
+
+            def check(message):
+                return message.author == context.author and len(message.attachments) > 0
+
+            try:
+                message = await self.bot.wait_for('message', check=check, timeout=60)
+            except asyncio.TimeoutError:
+                await request.edit(content="Time's up. Please try the command again.", delete_after=10)
+            else:
+                # Step 3: Save the new banner
+                attachment = message.attachments[0]
+                new_banner_path = f'graphics/{attachment.filename}'
+                await attachment.save(new_banner_path)
+                await self.bot.database.update_team_banner(name,
+                                                           new_banner_path)
+                await context.send(f"New banner saved to {new_banner_path}", ephemeral=True, delete_after=4)
+                await request.delete()
+                await message.delete()
+        if new_rank:
+            await self.bot.database.update_team_rank(name, new_rank)
+
+        embed = discord.Embed(
+            title=f'Team {name} updated.',
+            color=discord.Color.green()
+        )
+        await context.send(embed=embed, delete_after=5)
+
+    @team.command(
+        base="team",
+        name="delete",
+        description="Delete an existing team.",
+    )
+    @app_commands.describe(name="The name of the team to delete.")
+    @commands.is_owner()
+    async def delete_team(self, context: Context, name: str) -> None:
+        """
+        Delete an existing team.
+
+        :param context: The hybrid command context.
+        :param name: The name of the team to delete.
+        """
+        name = methods.standardize_team_name(name)
+
+        confirm_view = ConfirmView(name)
+        existing_team = await self.bot.database.get_team(name)
+        if not existing_team:
+            embed = discord.Embed(
+                title=f"Team {name} doesn't exist.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, ephemeral=True)
+            return
+
+        # Initial confirmation message
+        await context.send("Are you sure you want to delete the team?", view=confirm_view, ephemeral=True,
+                           delete_after=20)
+
+        await confirm_view.modal.submitted.wait()  # Wait for the ConfirmModal to be submitted
+
+        if confirm_view.modal.should_delete:
+            banner_path = existing_team[2]
+            if os.path.exists(banner_path):
+                os.remove(banner_path)
+
+            # Delete the team
+            await self.bot.database.delete_team(name)
+
+            embed = discord.Embed(
+                title=f'Team {name} deleted.',
+                color=discord.Color.from_str(config["color"])
+            )
+            await context.send(embed=embed, ephemeral=True, delete_after=5)
+        else:
+            embed = discord.Embed(
+                title=f'Deletion cancelled.',
+                color=0xE02B2B
+            )
+            await context.send(embed=embed, ephemeral=True, delete_after=5)
+
+    @team.command(
+        base="team",
+        name="status",
+        description="Change trialing status of a team.",
+    )
+    @app_commands.describe(team="The name of the team to change status.")
+    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    async def team_status(self, context: Context, team: str = None) -> None:
+        """
+        Change trialing status of a team.
+
+        :param context: The hybrid command context.
+        :param team: The name of the team to change status.
         """
         if team is None:
-            if await self.team_affiliation(context.author) == "Team does not exist.":
+            if await methods.team_affiliation(context.author) == "Team does not exist.":
                 embed = discord.Embed(
                     title=f"Team {team} doesn't exist.",
                     color=0xE02B2B,
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
-            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
+            elif await methods.team_affiliation(context.author) == "Sorry, you need to specify your team.":
                 embed = discord.Embed(
                     title="Please specify your team.",
                     description="You are affiliated with multiple teams.",
@@ -147,246 +458,42 @@ class Team(commands.Cog, name="team"):
                 await context.send(embed=embed, ephemeral=True)
                 return
             else:
-                team = await self.team_affiliation(context.author)
+                team = await methods.team_affiliation(context.author)
         else:
-            team = self.standardize_team_name(team)
+            team = methods.standardize_team_name(team)
 
-        await context.defer()
-        stripped_team_name = team.replace("Alternate ", "").strip()
-
-        team = await self.bot.database.get_team(team)
-        if not team:
+        existing_team = await self.bot.database.get_team(team)
+        if not existing_team:
             embed = discord.Embed(
-                title="Team not found",
+                title=f"Team {team} doesn't exist.",
                 color=0xE02B2B,
             )
             await context.send(embed=embed, ephemeral=True)
             return
 
-        if member:
-            role_name = f"OW | {stripped_team_name} Tryout"
-            role = discord.utils.get(context.guild.roles, name=role_name)
-            if not role:
-                embed = discord.Embed(
-                    title="Tryout role not found",
-                    color=0xE02B2B,
-                )
-                await context.send(embed=embed, ephemeral=True)
-                return
+        is_trialing = await self.bot.database.get_team_status(team)
+        new_status = not is_trialing
 
-            await member.add_roles(role)
+        await self.bot.database.update_team_status(team, new_status)
+
+        embed = discord.Embed(
+            title=f'Team {team} is now {"trialing" if new_status else "not trialing"}.',
+            color=discord.Color.from_str(config["color"])
+        )
+        await context.send(embed=embed, ephemeral=True, delete_after=5)
+
+        if await self.update_roster(context, team):
             embed = discord.Embed(
-                title=f"{team[0]} tryout given to {member.display_name}",
-                color=discord.Color.from_str(config["color"]),
+                title="Rosters updated.",
+                color=discord.Color.from_str(config["color"])
             )
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
         else:
-
             embed = discord.Embed(
-                title="Tryout invite created",
-                description=f"**Team:** {team[0]}",
-                color=discord.Color.from_str(config["color"]),
-            )
-
-            channel = self.bot.get_channel(1000763776095752302)
-            # for each amount of invites, create a new invite
-            for i in range(amount):
-                invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
-                                                     reason="Tryout invite")
-                self.invites[context.guild.id] = await context.guild.invites()
-                json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
-
-                if os.path.exists(json_path):
-                    with open(json_path, "r") as f:
-                        file_content = f.read()
-                        if file_content:
-                            tryout_data = json.loads(file_content)
-                        else:
-                            tryout_data = {}  # Initialize as empty dictionary if the file is empty
-
-                role_name = f"OW | {stripped_team_name} Tryout"
-                tryout_data[str(invite.code)] = role_name
-
-                with open(json_path, "w") as f:
-                    json.dump(tryout_data, f)
-
-                embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
-
-        await context.send(embed=embed)
-
-    @commands.hybrid_command(
-        name="ringer",
-        description="Creates a tryout invite for the specified team.",
-    )
-    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def ringer(self, context: Context, amount: int = 1, team: str = None, member: discord.Member = None) -> None:
-        """
-        Creates a ringer invite for the specified team.
-
-        :param context: The context of the command.
-        :param team: The name of the team.
-        :param amount: The amount of invites to create.
-        :param member: The member to give tryout to.
-        """
-        if team is None:
-            if await self.team_affiliation(context.author) == "Team does not exist.":
-                embed = discord.Embed(
-                    title=f"Team {team} doesn't exist.",
-                    color=0xE02B2B,
-                )
-                await context.send(embed=embed, ephemeral=True)
-                return
-            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
-                embed = discord.Embed(
-                    title="Please specify your team.",
-                    description="You are affiliated with multiple teams.",
-                    color=0xE02B2B,
-                )
-                await context.send(embed=embed, ephemeral=True)
-                return
-            else:
-                team = await self.team_affiliation(context.author)
-        else:
-            team = self.standardize_team_name(team)
-
-        await context.defer()
-        stripped_team_name = team.replace("Alternate ", "").strip()
-
-        team = await self.bot.database.get_team(team)
-        if not team:
-            embed = discord.Embed(
-                title="Team not found",
+                title="Something went wrong",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed, ephemeral=True)
-            return
-
-        if member:
-            role_name = f"OW | {stripped_team_name} Ringer"
-            role = discord.utils.get(context.guild.roles, name=role_name)
-            if not role:
-                embed = discord.Embed(
-                    title="Ringer role not found",
-                    color=0xE02B2B,
-                )
-                await context.send(embed=embed, ephemeral=True)
-                return
-
-            await member.add_roles(role)
-            embed = discord.Embed(
-                title=f"{team[0]} ringer given to {member.display_name}",
-                color=discord.Color.from_str(config["color"]),
-            )
-        else:
-
-            embed = discord.Embed(
-                title="Ringer invite created",
-                description=f"**Team:** {team[0]}",
-                color=discord.Color.from_str(config["color"]),
-            )
-
-            channel = self.bot.get_channel(1000763776095752302)
-            # for each amount of invites, create a new invite
-            for i in range(amount):
-                invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
-                                                     reason="Ringer invite")
-                self.invites[context.guild.id] = await context.guild.invites()
-                json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
-
-                if os.path.exists(json_path):
-                    with open(json_path, "r") as f:
-                        file_content = f.read()
-                        if file_content:
-                            tryout_data = json.loads(file_content)
-                        else:
-                            tryout_data = {}  # Initialize as empty dictionary if the file is empty
-
-                role_name = f"OW | {stripped_team_name} Ringer"
-                tryout_data[str(invite.code)] = role_name
-
-                with open(json_path, "w") as f:
-                    json.dump(tryout_data, f)
-
-                embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
-
-        await context.send(embed=embed)
-
-    @commands.hybrid_command(
-        name="cut",
-        description="Cuts a tryout or ringer from the specified team."
-    )
-    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
-    async def cut(self, context: Context, member: discord.Member, team: str = None) -> None:
-        """
-        Cuts a tryout from the specified team.
-
-        :param context: The context of the command.
-        :param team: The name of the team.
-        :param member: The member to cut.
-        """
-        if team is None:
-            if await self.team_affiliation(context.author) == "Team does not exist.":
-                embed = discord.Embed(
-                    title=f"Team {team} doesn't exist.",
-                    color=0xE02B2B,
-                )
-                await context.send(embed=embed, ephemeral=True)
-                return
-            elif await self.team_affiliation(context.author) == "Sorry, you need to specify your team.":
-                embed = discord.Embed(
-                    title="Please specify your team.",
-                    description="You are affiliated with multiple teams.",
-                    color=0xE02B2B,
-                )
-                await context.send(embed=embed, ephemeral=True)
-                return
-            else:
-                team = await self.team_affiliation(context.author)
-        else:
-            team = self.standardize_team_name(team)
-
-        await context.defer(ephemeral=True)
-        team = await self.bot.database.get_team(team)
-        if not team:
-            embed = discord.Embed(
-                title="Team not found",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed, ephemeral=True)
-            return
-
-        tryout = f"OW | {team[0].replace('Alternate ', '').strip()} Tryout"
-        ringer = f"OW | {team[0].replace('Alternate ', '').strip()} Ringer"
-        tryout_role = discord.utils.get(context.guild.roles, name=tryout)
-        ringer_role = discord.utils.get(context.guild.roles, name=ringer)
-        if not tryout_role:
-            embed = discord.Embed(
-                title="Tryout role not found",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed, ephemeral=True)
-            return
-        elif not ringer_role:
-            embed = discord.Embed(
-                title="Ringer role not found",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed, ephemeral=True)
-            return
-
-        if tryout_role in member.roles:
-            await member.remove_roles(tryout_role)
-            embed = discord.Embed(
-                title=f"{member.display_name} cut from {team[0]} tryouts",
-                color=discord.Color.from_str(config["color"]),
-            )
-            await context.send(embed=embed, ephemeral=True)
-        elif ringer_role in member.roles:
-            await member.remove_roles(ringer_role)
-            embed = discord.Embed(
-                title=f"{member.display_name} cut from {team[0]} ringers",
-                color=discord.Color.from_str(config["color"]),
-            )
-            await context.send(embed=embed, ephemeral=True)
+            await context.interaction.followup.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot) -> None:

@@ -160,6 +160,21 @@ class DatabaseManager:
             await cursor.execute("SELECT * FROM teams")
             return await cursor.fetchall()
 
+    async def get_team_status(self, team_name: str) -> bool:
+        # return bool in 4th column
+        async with self.connection.cursor() as cursor:
+            await cursor.execute("SELECT is_trialing FROM teams WHERE team_name = ?", (team_name,))
+            result = await cursor.fetchone()
+            return result[0] if result else None
+
+    async def update_team_status(self, team_name: str, is_trialing: bool):
+        async with self.connection.cursor() as cursor:
+            await cursor.execute(
+                "UPDATE teams SET is_trialing = ? WHERE team_name = ?",
+                (is_trialing, team_name)
+            )
+            await self.connection.commit()
+
     async def get_player_team(self, player_id: int):
         async with self.connection.cursor() as cursor:
             await cursor.execute("SELECT team_name FROM players WHERE player_id = ?", (player_id,))

@@ -22,5 +22,5 @@
     "Remembering OWL >_<"
   ],
   "sync_commands_globally": false,
-  "disabled_cogs": ["template", "fun", "moderation"]
+  "disabled_cogs": ["template", "fun", "moderation", "coaching"]
 }

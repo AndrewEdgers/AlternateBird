@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS `teams` (
   `team_name` varchar(255) NOT NULL PRIMARY KEY,
   `color` varchar(7) NOT NULL,
   `banner` varchar(255) NOT NULL,
-  `rank` varchar(50) NULL
+  `rank` varchar(50) NULL,
+  `is_trialing` boolean NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS `players` (
