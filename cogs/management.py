@@ -386,7 +386,7 @@ class Management(commands.Cog, name="management"):
         name="tweet",
         description="Send a tweet to a webhook.",
     )
-    @commands.has_any_role("Owner", "CTO", "AP", "Managers", "Social Media Team", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "Social Media Team", "Technician Team")
     @app_commands.describe(
         link="The link to the tweet.",
         message="The message that should be sent with the tweet.",
