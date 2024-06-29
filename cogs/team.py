@@ -200,7 +200,7 @@ class Team(commands.Cog, name="team"):
         name="team",
         description="Lists, create, edit, delete and change trialing status of Alternate eSports teams.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def team(self, context: Context) -> None:
         """
         Lists, create, edit and delete all Alternate eSports team rosters.
@@ -222,7 +222,7 @@ class Team(commands.Cog, name="team"):
         name="list",
         description="List all Alternate eSports team rosters.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def list_team(self, context: Context) -> None:
         """
         List all Alternate eSports team rosters.
@@ -433,7 +433,7 @@ class Team(commands.Cog, name="team"):
         description="Change trialing status of a team.",
     )
     @app_commands.describe(team="The name of the team to change status.")
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def team_status(self, context: Context, team: str = None) -> None:
         """
         Change trialing status of a team.

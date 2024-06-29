@@ -22,7 +22,6 @@ from discord.ext.commands import Context
 from dotenv import load_dotenv
 
 from database import DatabaseManager
-
 from helpers import methods
 
 config = methods.load_config()
@@ -295,7 +294,8 @@ class DiscordBot(commands.Bot):
                 )
             else:
                 self.logger.warning(
-                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the bot's DMs, but the user is not an owner of the bot."
+                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the bot's "
+                    f"DMs, but the user is not an owner of the bot."
                 )
         elif isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
@@ -316,7 +316,8 @@ class DiscordBot(commands.Bot):
         elif isinstance(error, commands.MissingRequiredArgument):
             embed = discord.Embed(
                 title="Error!",
-                # We need to capitalize because the command arguments have no capital letter in the code and they are the first word in the error message.
+                # We need to capitalize because the command arguments have no capital letter in the code and they are
+                # the first word in the error message.
                 description=str(error).capitalize(),
                 color=0xE02B2B,
             )

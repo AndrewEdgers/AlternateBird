@@ -119,7 +119,11 @@ class Roster(commands.Cog, name="roster"):
     @tasks.loop(hours=168)
     async def clean_expired_invites(self):
         self.logger.info("Cleaning expired invites")
-        channel = await self.bot.fetch_channel(1000763776095752302)
+        try:
+            await self.bot.fetch_channel(1000763776095752302)
+        except discord.NotFound:
+            self.logger.error("Channel not found, Dev bird, Perchance?")
+            return
         json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
 
         with open(json_path, "r") as f:
@@ -127,14 +131,14 @@ class Roster(commands.Cog, name="roster"):
 
         for code in list(tryout_data.keys()):
             try:
-                invite = await self.bot.fetch_invite(code)
+                await self.bot.fetch_invite(code)
             except discord.NotFound:  # Invite not found
                 del tryout_data[code]
 
         with open(json_path, "w") as f:
             json.dump(tryout_data, f)
 
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Overwatch Team")
     async def update_all_messages(self, interaction: discord.Interaction, message: discord.Message) -> None:
         """
         Updates all messages similar to the given message.
@@ -259,7 +263,8 @@ class Roster(commands.Cog, name="roster"):
 
     async def get_staff_embed(self, context: Context):
         roles_dict = {
-            "Operation Manager": [],
+            "Owner": [],
+            "CTO": [],
             "Operations Coordinator": [],
             "Community Events Coordinator": [],
             "Staff Coordinator": [],
@@ -272,7 +277,8 @@ class Roster(commands.Cog, name="roster"):
         }
 
         role_emojis = {
-            "Operation Manager": "<:OM:1159587754250874941>",
+            "Owner": "<:Owner:1159587754250874941>",
+            "CTO": "<:CTO:1253701616050114564>",
             "Operations Coordinator": "<:OC:1159587816318185632>",
             "Community Events Coordinator": "<:EC:1159587876393209896>",
             "Staff Coordinator": "<:SC:1159587910174130227>",
@@ -573,7 +579,7 @@ class Roster(commands.Cog, name="roster"):
         name="player",
         description="Lists, sign, release and edit Alternate eSports players.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Overwatch Team",
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Overwatch Team",
                            "Technician Team")
     async def player(self, context: Context) -> None:
         """
@@ -638,7 +644,7 @@ class Roster(commands.Cog, name="roster"):
         name="update",
         description="Updates the roster message.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def update_player(self, context: Context, team: str = None) -> None:
         """
         Updates the roster message_obj.
@@ -674,7 +680,7 @@ class Roster(commands.Cog, name="roster"):
     )
     @app_commands.describe(member="The id of the player to sign.", team="The team to sign the player to.",
                            role="The role of the player to sign.")
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Technician Team")
     @app_commands.choices(role=[Choice(name="Main Tank", value="Main Tank"),
                                 Choice(name="Off Tank", value="Off Tank"),
                                 Choice(name="Hitscan DPS", value="Hitscan DPS"),
@@ -810,7 +816,7 @@ class Roster(commands.Cog, name="roster"):
     )
     @app_commands.describe(member="The name of the player to release.", team="The team of the player",
                            role="The role of the player")
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach")
     @app_commands.choices(role=[Choice(name="Main Tank", value="Main Tank"),
                                 Choice(name="Off Tank", value="Off Tank"),
                                 Choice(name="Hitscan DPS", value="Hitscan DPS"),
@@ -889,7 +895,7 @@ class Roster(commands.Cog, name="roster"):
         description="Edit an existing player.",
     )
     @app_commands.describe(member="The name of the player to edit.", new_role="The new role for the player.")
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach")
     @app_commands.choices(new_role=[Choice(name="Main Tank", value="Main Tank"),
                                     Choice(name="Off Tank", value="Off Tank"),
                                     Choice(name="Hitscan DPS", value="Hitscan DPS"),
@@ -946,7 +952,7 @@ class Roster(commands.Cog, name="roster"):
         name="tryout",
         description="Creates a tryout invite for the specified team.",
     )
-    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
+    @commands.check_any(commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach"))
     async def tryout(self, context: Context, amount: int = 1, member: discord.Member = None, team: str = None) -> None:
         """
         Creates a tryout invite for the specified team.
@@ -1024,7 +1030,7 @@ class Roster(commands.Cog, name="roster"):
         name="ringer",
         description="Creates a tryout invite for the specified team.",
     )
-    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
+    @commands.check_any(commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach"))
     async def ringer(self, context: Context, amount: int = 1, member: discord.Member = None, team: str = None) -> None:
         """
         Creates a ringer invite for the specified team.
@@ -1102,7 +1108,7 @@ class Roster(commands.Cog, name="roster"):
         name="cut",
         description="Cuts a tryout or ringer from the specified team."
     )
-    @commands.check_any(commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach"))
+    @commands.check_any(commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach"))
     async def cut(self, context: Context, member: discord.Member, team: str = None) -> None:
         """
         Cuts a tryout from the specified team.

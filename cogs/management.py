@@ -12,16 +12,21 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
+import logging
 
 from helpers.methods import load_config
+from helpers.twitter import twitter
 
 config = load_config()
 
+logger = logging.getLogger("discord_bot")
 
-class Moderation(commands.Cog, name="moderation"):
+
+class Management(commands.Cog, name="management"):
     """
-    Moderation related commands.
+    Management related commands.
     """
+
     def __init__(self, bot) -> None:
         self.bot = bot
 
@@ -351,6 +356,7 @@ class Moderation(commands.Cog, name="moderation"):
         """
         Archives in a text file the last messages with a chosen limit of messages. This command requires the MESSAGE_CONTENT intent to work properly.
 
+        :param context: The hybrid command context.
         :param limit: The limit of messages that should be archived. Default is 10.
         """
         log_file = f"{context.channel.id}.log"
@@ -376,6 +382,44 @@ class Moderation(commands.Cog, name="moderation"):
         await context.send(file=f)
         os.remove(log_file)
 
+    @commands.hybrid_command(
+        name="tweet",
+        description="Send a tweet to a webhook.",
+    )
+    @commands.has_any_role("Owner", "CTO", "AP", "Managers", "Social Media Team", "Technician Team")
+    @app_commands.describe(
+        link="The link to the tweet.",
+        message="The message that should be sent with the tweet.",
+        is_ping="Whether to ping the roles or not.",
+    )
+    async def tweet(self, context: Context, link: str, message: str = None, is_ping: bool = False) -> None:
+        """
+        Send a tweet to a webhook.
+
+        :param context: The hybrid command context.
+        :param link: The link to the tweet.
+        :param message: The message that should be sent with the tweet.
+        :param is_ping: Whether to ping the roles or not. Default is False.
+        """
+        link = link.split("/")[-1]
+
+        if is_ping:
+            ping = "@here <@&1000743356147712080> "
+        else:
+            ping = ""
+        if message:
+            caption = ping + message
+        else:
+            caption = ping
+
+        try:
+            await twitter(link, caption)
+            logger.info(f'Tweet sent successfully: {link}')
+            await context.send(f'Tweet sent successfully: {link}')
+        except Exception as e:
+            logger.error(f'Failed to send tweet: {e}')
+            await context.send(f'Failed to send tweet: {e}')
+
 
 async def setup(bot) -> None:
-    await bot.add_cog(Moderation(bot))
+    await bot.add_cog(Management(bot))
