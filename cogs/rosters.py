@@ -6,17 +6,16 @@ Description:
 Version: 6.1.0
 """
 import json
-import os
 import logging
+import os
+from collections import defaultdict
+from typing import List, Dict
 
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
-
-from typing import List, Dict
-from collections import defaultdict
 
 from helpers import methods
 
@@ -106,8 +105,9 @@ class Roster(commands.Cog, name="roster"):
                 with open(json_path, "w") as f:
                     json.dump(tryout_data, f)
 
-                # Delete the used invite
-                await used_invite.delete(reason="Invite used, deleting.")
+                # Check if the invite has only one use and delete it if true
+                if used_invite.max_uses == 1 and used_invite.uses == 1:
+                    await used_invite.delete(reason="Invite used, deleting.")
 
                 # Get the role object from the guild based on the role_name
                 role_to_assign = discord.utils.get(guild.roles, name=role_name)
@@ -1000,29 +1000,28 @@ class Roster(commands.Cog, name="roster"):
                 color=discord.Color.from_str(config["color"]),
             )
 
-            channel = self.bot.get_channel(1000763776095752302)
-            # for each amount of invites, create a new invite
-            for i in range(amount):
-                invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
-                                                     reason="Tryout invite")
-                self.invites[context.guild.id] = await context.guild.invites()
-                json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
+            channel = self.bot.get_channel(1000763776095752302)  # 1000763776095752302
 
-                if os.path.exists(json_path):
-                    with open(json_path, "r") as f:
-                        file_content = f.read()
-                        if file_content:
-                            tryout_data = json.loads(file_content)
-                        else:
-                            tryout_data = {}  # Initialize as empty dictionary if the file is empty
+            invite = await channel.create_invite(max_age=604800, max_uses=amount + 1, unique=True,
+                                                 reason="Tryout invite")
+            self.invites[context.guild.id] = await context.guild.invites()
+            json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
 
-                role_name = f"OW | {stripped_team_name} Tryout"
-                tryout_data[str(invite.code)] = role_name
+            if os.path.exists(json_path):
+                with open(json_path, "r") as f:
+                    file_content = f.read()
+                    if file_content:
+                        tryout_data = json.loads(file_content)
+                    else:
+                        tryout_data = {}  # Initialize as empty dictionary if the file is empty
 
-                with open(json_path, "w") as f:
-                    json.dump(tryout_data, f)
+            role_name = f"OW | {stripped_team_name} Tryout"
+            tryout_data[str(invite.code)] = role_name
 
-                embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
+            with open(json_path, "w") as f:
+                json.dump(tryout_data, f)
+
+            embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
 
         await context.send(embed=embed)
 
@@ -1079,28 +1078,27 @@ class Roster(commands.Cog, name="roster"):
             )
 
             channel = self.bot.get_channel(1000763776095752302)
-            # for each amount of invites, create a new invite
-            for i in range(amount):
-                invite = await channel.create_invite(max_age=604800, max_uses=2, unique=True,
-                                                     reason="Ringer invite")
-                self.invites[context.guild.id] = await context.guild.invites()
-                json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
 
-                if os.path.exists(json_path):
-                    with open(json_path, "r") as f:
-                        file_content = f.read()
-                        if file_content:
-                            tryout_data = json.loads(file_content)
-                        else:
-                            tryout_data = {}  # Initialize as empty dictionary if the file is empty
+            invite = await channel.create_invite(max_age=604800, max_uses=amount + 1, unique=True,
+                                                 reason="Ringer invite")
+            self.invites[context.guild.id] = await context.guild.invites()
+            json_path = f"{os.path.realpath(os.path.dirname(__file__))}/../configs/tryout_invites.json"
 
-                role_name = f"OW | {stripped_team_name} Ringer"
-                tryout_data[str(invite.code)] = role_name
+            if os.path.exists(json_path):
+                with open(json_path, "r") as f:
+                    file_content = f.read()
+                    if file_content:
+                        tryout_data = json.loads(file_content)
+                    else:
+                        tryout_data = {}  # Initialize as empty dictionary if the file is empty
 
-                with open(json_path, "w") as f:
-                    json.dump(tryout_data, f)
+            role_name = f"OW | {stripped_team_name} Ringer"
+            tryout_data[str(invite.code)] = role_name
 
-                embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
+            with open(json_path, "w") as f:
+                json.dump(tryout_data, f)
+
+            embed.add_field(name="Invite link", value=f"```{invite.url}```", inline=False)
 
         await context.send(embed=embed)
 
