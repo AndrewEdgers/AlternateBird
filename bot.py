@@ -11,7 +11,6 @@ import logging
 import os
 import platform
 import random
-import sys
 import re
 from collections import deque
 from datetime import datetime
@@ -23,57 +22,14 @@ from discord.ext.commands import Context
 from dotenv import load_dotenv
 
 from database import DatabaseManager
+from helpers import methods
 
-if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open(f"{os.path.realpath(os.path.dirname(__file__))}/config.json") as file:
-        config = json.load(file)
-
-"""	
-Setup bot intents (events restrictions)
-For more information about intents, please go to the following websites:
-https://discordpy.readthedocs.io/en/latest/intents.html
-https://discordpy.readthedocs.io/en/latest/intents.html#privileged-intents
-
-
-Default Intents:
-intents.bans = True
-intents.dm_messages = True
-intents.dm_reactions = True
-intents.dm_typing = True
-intents.emojis = True
-intents.emojis_and_stickers = True
-intents.guild_messages = True
-intents.guild_reactions = True
-intents.guild_scheduled_events = True
-intents.guild_typing = True
-intents.guilds = True
-intents.integrations = True
-intents.invites = True
-intents.messages = True # `message_content` is required to get the content of the messages
-intents.reactions = True
-intents.typing = True
-intents.voice_states = True
-intents.webhooks = True
-
-Privileged Intents (Needs to be enabled on developer portal of Discord), please use them only if you need them:
-intents.members = True
-intents.message_content = True
-intents.presences = True
-"""
+config = methods.load_config()
 
 intents = discord.Intents.all()
 intents.members = True
 intents.message_content = True
 intents.presences = True
-
-"""
-Uncomment this if you want to use prefix (normal) commands.
-It is recommended to use slash commands and therefore not use prefix commands.
-
-If you want to use prefix commands, make sure to also enable the intent below in the Discord developer portal.
-"""
 
 
 # Setup both of the loggers
@@ -212,6 +168,7 @@ class DiscordBot(commands.Bot):
                 f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
             )
         )
+        methods.set_database(self.database)
         if config["sync_commands_globally"]:
             self.logger.info("Syncing commands globally...")
             await bot.tree.sync()
@@ -235,7 +192,7 @@ class DiscordBot(commands.Bot):
 
         # Check if the message is in the channel with the ID 1053462751240003594
         if message.channel.id == 1053462751240003594:
-            pattern = r'^[\"\‘\’\“\”\«\»]\s*(.+?)\s*[\"\‘\’\“\”\«\»]\s*-?\s*@?([\w\s@#<>]+)$' # pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
+            pattern = r'^[\"\‘\’\“\”\«\»]\s*(.+?)\s*[\"\‘\’\“\”\«\»]\s*-?\s*@?([\w\s@#<>]+)$'  # pattern = r'^"\s*(.+?)\s*"\s*-?\s*@?([\w\s@#<>]+)$'
             match = re.match(pattern, message.content)
             if match:
                 quote_text = match.group(1)
@@ -337,7 +294,8 @@ class DiscordBot(commands.Bot):
                 )
             else:
                 self.logger.warning(
-                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the bot's DMs, but the user is not an owner of the bot."
+                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the bot's "
+                    f"DMs, but the user is not an owner of the bot."
                 )
         elif isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
@@ -358,7 +316,8 @@ class DiscordBot(commands.Bot):
         elif isinstance(error, commands.MissingRequiredArgument):
             embed = discord.Embed(
                 title="Error!",
-                # We need to capitalize because the command arguments have no capital letter in the code and they are the first word in the error message.
+                # We need to capitalize because the command arguments have no capital letter in the code and they are
+                # the first word in the error message.
                 description=str(error).capitalize(),
                 color=0xE02B2B,
             )

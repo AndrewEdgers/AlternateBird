@@ -21,14 +21,14 @@ class Choice(discord.ui.View):
 
     @discord.ui.button(label="Heads", style=discord.ButtonStyle.blurple)
     async def confirm(
-        self, button: discord.ui.Button, interaction: discord.Interaction
+            self, button: discord.ui.Button, interaction: discord.Interaction
     ) -> None:
         self.value = "heads"
         self.stop()
 
     @discord.ui.button(label="Tails", style=discord.ButtonStyle.blurple)
     async def cancel(
-        self, button: discord.ui.Button, interaction: discord.Interaction
+            self, button: discord.ui.Button, interaction: discord.Interaction
     ) -> None:
         self.value = "tails"
         self.stop()
@@ -97,6 +97,7 @@ class Fun(commands.Cog, name="fun"):
     """
     Fun commands. 🎉
     """
+
     def __init__(self, bot) -> None:
         self.bot = bot
 
@@ -107,10 +108,11 @@ class Fun(commands.Cog, name="fun"):
 
         :param context: The hybrid command context.
         """
-        # This will prevent your bot from stopping everything when doing a web request - see: https://discordpy.readthedocs.io/en/stable/faq.html#how-do-i-make-a-web-request
+        # This will prevent your bot from stopping everything when doing a web request - see:
+        # https://discordpy.readthedocs.io/en/stable/faq.html#how-do-i-make-a-web-request
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://uselessfacts.jsph.pl/random.json?language=en"
+                    "https://uselessfacts.jsph.pl/random.json?language=en"
             ) as request:
                 if request.status == 200:
                     data = await request.json()
