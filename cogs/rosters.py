@@ -34,7 +34,7 @@ async def team_check(team: str | None, context: Context) -> str | None:
         if await methods.team_affiliation(context.author) == "Team does not exist.":
             embed = discord.Embed(
                 title=f"Team {team} doesn't exist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -42,7 +42,7 @@ async def team_check(team: str | None, context: Context) -> str | None:
             embed = discord.Embed(
                 title="Please specify your team.",
                 description="You are affiliated with multiple teams.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -170,7 +170,7 @@ class Roster(commands.Cog, name="roster"):
             embed = discord.Embed(
                 title="This is not the message you are looking for.",
                 description=f"Message type not found.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
@@ -193,7 +193,7 @@ class Roster(commands.Cog, name="roster"):
         embed = discord.Embed(
             title="Update Complete",
             description=f"All {message_type} messages have been updated.",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
 
         # Finally, send the message as a follow-up to the deferred interaction
@@ -252,7 +252,7 @@ class Roster(commands.Cog, name="roster"):
         embed = discord.Embed(
             title="Alternate eSports Coaches Roster",
             description=description_str,
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
 
         # Add the rest of the coaches as fields
@@ -317,7 +317,7 @@ class Roster(commands.Cog, name="roster"):
         staff_embed = discord.Embed(
             title="Alternate eSports Staff and Teams",
             description=description_str,
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
 
         # Initialize manager_description_str
@@ -351,7 +351,7 @@ class Roster(commands.Cog, name="roster"):
         manager_embed = discord.Embed(
             title="Alternate eSports Team Managers",
             description=manager_description_str,
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
 
         # Add general managers as fields
@@ -490,7 +490,7 @@ class Roster(commands.Cog, name="roster"):
         if await self.bot.is_owner(context.author):
             embed = discord.Embed(
                 title="Alternate eSports Coaches Roster",
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             await context.send(embed=embed, ephemeral=True)
             message = await context.channel.send(file=discord.File('graphics/Coaches.png'),
@@ -514,13 +514,13 @@ class Roster(commands.Cog, name="roster"):
 
         embed = discord.Embed(
             title="Updating Coach roster...",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         reply = await context.send(embed=embed, ephemeral=True)
 
         embed = discord.Embed(
             title="Coaches roster updated.",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         new_embed = self.get_coaches_embed(context)
         await self.fetch_and_update(self.bot, "coaches", new_embed)
@@ -539,7 +539,7 @@ class Roster(commands.Cog, name="roster"):
         """
         reply = discord.Embed(
             title="Alternate eSports Staff and Teams Roster",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=reply, ephemeral=True)
 
@@ -562,13 +562,13 @@ class Roster(commands.Cog, name="roster"):
 
         embed = discord.Embed(
             title="Updating Staff roster...",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         reply = await context.send(embed=embed, ephemeral=True)
 
         embed = discord.Embed(
             title="Staff roster updated.",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         # get the message
         embeds = await self.get_staff_embed(context)
@@ -593,7 +593,7 @@ class Roster(commands.Cog, name="roster"):
                             "`roster` - List all players.\n`sign` - Sign a new player.\n"
                             "`release` - Release an existing player.\n"
                             "`edit` - Edit an existing player.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
 
@@ -617,7 +617,7 @@ class Roster(commands.Cog, name="roster"):
         if not await self.bot.database.get_team(team):
             embed = discord.Embed(
                 title=f"Team {team} doesn't exist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -632,7 +632,7 @@ class Roster(commands.Cog, name="roster"):
 
         embed = discord.Embed(
             title=f'Alternate eSports {team} Roster',
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -656,20 +656,20 @@ class Roster(commands.Cog, name="roster"):
 
         embed = discord.Embed(
             title="Updating roster...",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         reply = await context.send(embed=embed, ephemeral=True)
 
         if await self.update_roster(context, team):
             embed = discord.Embed(
                 title="Rosters updated.",
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             await reply.edit(embed=embed, delete_after=5)
         else:
             embed = discord.Embed(
                 title="Something went wrong",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await reply.edit(embed=embed, delete_after=5)
 
@@ -746,7 +746,7 @@ class Roster(commands.Cog, name="roster"):
             if existing_team == team and existing_role == role:
                 embed = discord.Embed(
                     title=f"Player {name} already in {team} as {role}.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -756,7 +756,7 @@ class Roster(commands.Cog, name="roster"):
                 await self.bot.database.add_player(player_id, team, role)
                 embed = discord.Embed(
                     title=f'Signed player {name} for {team} as {role}.',
-                    color=discord.Color.from_str(config["color"])
+                    color=discord.Color.from_str(config["main_color"])
                 )
                 if roles_to_remove:
                     await member.remove_roles(*roles_to_remove)
@@ -767,7 +767,7 @@ class Roster(commands.Cog, name="roster"):
                                                              "Main Support", "Flex Support"]:
                 embed = discord.Embed(
                     title=f"Player {name} already in {team} as {existing_role}.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -777,14 +777,14 @@ class Roster(commands.Cog, name="roster"):
             if not await self.bot.database.get_team(team):
                 embed = discord.Embed(
                     title=f"Team {team} doesn't exist.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.interaction.followup.send(embed=embed, ephemeral=True)
                 return
             await self.bot.database.add_player(player_id, team, role)
             embed = discord.Embed(
                 title=f'Signed player {name} for {team} as {role}.',
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             if ow_tryout:
                 roles_to_remove.append(ow_tryout)
@@ -799,13 +799,13 @@ class Roster(commands.Cog, name="roster"):
             if await self.update_roster(context, team):
                 embed = discord.Embed(
                     title="Rosters updated.",
-                    color=discord.Color.from_str(config["color"])
+                    color=discord.Color.from_str(config["main_color"])
                 )
                 await context.interaction.followup.send(embed=embed, ephemeral=True)
             else:
                 embed = discord.Embed(
                     title="Something went wrong",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -848,7 +848,7 @@ class Roster(commands.Cog, name="roster"):
         if not existing_entry:
             embed = discord.Embed(
                 title=f"Player {name} doesn't exist with the given parameters.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
             return
@@ -872,20 +872,20 @@ class Roster(commands.Cog, name="roster"):
 
         embed = discord.Embed(
             title=f'Player {name} released.',
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         await context.interaction.followup.send(embed=embed, ephemeral=True)
 
         if await self.update_roster(context, team):
             embed = discord.Embed(
                 title="Rosters updated.",
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
         else:
             embed = discord.Embed(
                 title="Something went wrong",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -919,7 +919,7 @@ class Roster(commands.Cog, name="roster"):
         if not await self.bot.database.get_player(player_id):
             embed = discord.Embed(
                 title=f"Player {name} doesn't exist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -928,7 +928,7 @@ class Roster(commands.Cog, name="roster"):
 
         embed = discord.Embed(
             title=f'Player {name} updated.',
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -938,13 +938,13 @@ class Roster(commands.Cog, name="roster"):
         if await self.update_roster(context, team):
             embed = discord.Embed(
                 title="Rosters updated.",
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
         else:
             embed = discord.Embed(
                 title="Something went wrong",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -971,7 +971,7 @@ class Roster(commands.Cog, name="roster"):
         if not team:
             embed = discord.Embed(
                 title="Team not found",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -982,7 +982,7 @@ class Roster(commands.Cog, name="roster"):
             if not role:
                 embed = discord.Embed(
                     title="Tryout role not found",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
@@ -990,14 +990,14 @@ class Roster(commands.Cog, name="roster"):
             await member.add_roles(role)
             embed = discord.Embed(
                 title=f"{team[0]} tryout given to {member.display_name}",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
         else:
 
             embed = discord.Embed(
                 title="Tryout invite created",
                 description=f"**Team:** {team[0]}",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
 
             channel = self.bot.get_channel(1000763776095752302)  # 1000763776095752302
@@ -1048,7 +1048,7 @@ class Roster(commands.Cog, name="roster"):
         if not team:
             embed = discord.Embed(
                 title="Team not found",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -1059,7 +1059,7 @@ class Roster(commands.Cog, name="roster"):
             if not role:
                 embed = discord.Embed(
                     title="Ringer role not found",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
@@ -1067,14 +1067,14 @@ class Roster(commands.Cog, name="roster"):
             await member.add_roles(role)
             embed = discord.Embed(
                 title=f"{team[0]} ringer given to {member.display_name}",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
         else:
 
             embed = discord.Embed(
                 title="Ringer invite created",
                 description=f"**Team:** {team[0]}",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
 
             channel = self.bot.get_channel(1000763776095752302)
@@ -1122,7 +1122,7 @@ class Roster(commands.Cog, name="roster"):
         if not team:
             embed = discord.Embed(
                 title="Team not found",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -1134,14 +1134,14 @@ class Roster(commands.Cog, name="roster"):
         if not tryout_role:
             embed = discord.Embed(
                 title="Tryout role not found",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
         elif not ringer_role:
             embed = discord.Embed(
                 title="Ringer role not found",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -1150,14 +1150,14 @@ class Roster(commands.Cog, name="roster"):
             await member.remove_roles(tryout_role)
             embed = discord.Embed(
                 title=f"{member.display_name} cut from {team[0]} tryouts",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
         elif ringer_role in member.roles:
             await member.remove_roles(ringer_role)
             embed = discord.Embed(
                 title=f"{member.display_name} cut from {team[0]} ringers",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
 

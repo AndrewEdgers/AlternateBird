@@ -1,7 +1,10 @@
 {
   "prefix": "!",
   "invite_link": " https://discord.com/oauth2/authorize?&client_id=1081992472781148331&scope=bot+applications.commands&permissions=8",
-  "color": "0x114b5f",
+  "main_color": "0x114b5f",
+  "error_color": "0xE02B2B",
+  "success_color": "0x57F287",
+  "warning_color": "0xF59E42",
   "owners": [
     224585378911354880,
     713250155016749069,

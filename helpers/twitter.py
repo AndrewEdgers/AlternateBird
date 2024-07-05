@@ -57,7 +57,7 @@ async def send_to_discord(content, tweet_text, media_url, author_name, author_ur
                 "icon_url": author_icon_url
             },
             "description": tweet_text,
-            "color": discord.Color.from_str(config["color"]).value,
+            "color": discord.Color.from_str(config["main_color"]).value,
             "footer": {
                 "text": f"{created_at.strftime('%Y-%m-%d %H:%M:%S CST')}"
             }

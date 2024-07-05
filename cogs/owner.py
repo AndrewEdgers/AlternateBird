@@ -49,7 +49,7 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync()
             embed = discord.Embed(
                 description="Slash commands have been globally synchronized.",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed)
             return
@@ -58,12 +58,12 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync(guild=context.guild)
             embed = discord.Embed(
                 description="Slash commands have been synchronized in this guild.",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed)
             return
         embed = discord.Embed(
-            description="The scope must be `global` or `guild`.", color=0xE02B2B
+            description="The scope must be `global` or `guild`.", color=discord.Color.from_str(config["error_color"])
         )
         await context.send(embed=embed)
 
@@ -88,7 +88,7 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync()
             embed = discord.Embed(
                 description="Slash commands have been globally unsynchronized.",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -97,12 +97,12 @@ class Owner(commands.Cog, name="owner"):
             await context.bot.tree.sync(guild=context.guild)
             embed = discord.Embed(
                 description="Slash commands have been unsynchronized in this guild.",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description="The scope must be `global` or `guild`.", color=0xE02B2B
+            description="The scope must be `global` or `guild`.", color=discord.Color.from_str(config["error_color"])
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -123,12 +123,12 @@ class Owner(commands.Cog, name="owner"):
             await self.bot.load_extension(f"cogs.{cog}")
         except Exception:
             embed = discord.Embed(
-                description=f"Could not load the `{cog}` cog.", color=0xE02B2B
+                description=f"Could not load the `{cog}` cog.", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description=f"Successfully loaded the `{cog}` cog.", color=discord.Color.from_str(config["color"])
+            description=f"Successfully loaded the `{cog}` cog.", color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -149,12 +149,12 @@ class Owner(commands.Cog, name="owner"):
             await self.bot.unload_extension(f"cogs.{cog}")
         except Exception:
             embed = discord.Embed(
-                description=f"Could not unload the `{cog}` cog.", color=0xE02B2B
+                description=f"Could not unload the `{cog}` cog.", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description=f"Successfully unloaded the `{cog}` cog.", color=discord.Color.from_str(config["color"])
+            description=f"Successfully unloaded the `{cog}` cog.", color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -175,12 +175,12 @@ class Owner(commands.Cog, name="owner"):
             await self.bot.reload_extension(f"cogs.{cog}")
         except Exception:
             embed = discord.Embed(
-                description=f"Could not reload the `{cog}` cog.", color=0xE02B2B
+                description=f"Could not reload the `{cog}` cog.", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed, ephemeral=True)
             return
         embed = discord.Embed(
-            description=f"Successfully reloaded the `{cog}` cog.", color=discord.Color.from_str(config["color"])
+            description=f"Successfully reloaded the `{cog}` cog.", color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -195,7 +195,7 @@ class Owner(commands.Cog, name="owner"):
 
         :param context: The hybrid command context.
         """
-        embed = discord.Embed(description="Shutting down. Bye! :wave:", color=discord.Color.from_str(config["color"]))
+        embed = discord.Embed(description="Shutting down. Bye! :wave:", color=discord.Color.from_str(config["main_color"]))
         await context.send(embed=embed, ephemeral=True)
         await self.bot.close()
 
@@ -227,7 +227,7 @@ class Owner(commands.Cog, name="owner"):
         :param context: The hybrid command context.
         :param message: The message that should be repeated by the bot.
         """
-        embed = discord.Embed(description=message, color=discord.Color.from_str(config["color"]))
+        embed = discord.Embed(description=message, color=discord.Color.from_str(config["main_color"]))
         await context.send(embed=embed)
 
     @commands.hybrid_group(
@@ -244,7 +244,7 @@ class Owner(commands.Cog, name="owner"):
         if context.invoked_subcommand is None:
             embed = discord.Embed(
                 description="You need to specify a subcommand.\n\n**Subcommands:**\n`add` - Add a user to the blacklist.\n`remove` - Remove a user from the blacklist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
 
@@ -263,12 +263,12 @@ class Owner(commands.Cog, name="owner"):
         blacklisted_users = await self.bot.database.get_blacklisted_users()
         if len(blacklisted_users) == 0:
             embed = discord.Embed(
-                description="There are currently no blacklisted users.", color=0xE02B2B
+                description="There are currently no blacklisted users.", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed)
             return
 
-        embed = discord.Embed(title="Blacklisted Users", color=discord.Color.from_str(config["color"]))
+        embed = discord.Embed(title="Blacklisted Users", color=discord.Color.from_str(config["main_color"]))
         users = []
         for bluser in blacklisted_users:
             user = self.bot.get_user(int(bluser[0])) or await self.bot.fetch_user(
@@ -296,14 +296,14 @@ class Owner(commands.Cog, name="owner"):
         if await self.bot.database.is_blacklisted(user_id):
             embed = discord.Embed(
                 description=f"**{user.name}** is already in the blacklist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
             return
         total = await self.bot.database.add_user_to_blacklist(user_id)
         embed = discord.Embed(
             description=f"**{user.name}** has been successfully added to the blacklist",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         embed.set_footer(
             text=f"There {'is' if total == 1 else 'are'} now {total} {'user' if total == 1 else 'users'} in the blacklist"
@@ -327,14 +327,14 @@ class Owner(commands.Cog, name="owner"):
         user_id = user.id
         if not await self.bot.database.is_blacklisted(user_id):
             embed = discord.Embed(
-                description=f"**{user.name}** is not in the blacklist.", color=0xE02B2B
+                description=f"**{user.name}** is not in the blacklist.", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed)
             return
         total = await self.bot.database.remove_user_from_blacklist(user_id)
         embed = discord.Embed(
             description=f"**{user.name}** has been successfully removed from the blacklist",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         embed.set_footer(
             text=f"There {'is' if total == 1 else 'are'} now {total} {'user' if total == 1 else 'users'} in the blacklist"
@@ -368,7 +368,7 @@ class Owner(commands.Cog, name="owner"):
         if context.invoked_subcommand is None:
             embed = discord.Embed(
                 description="You need to specify a subcommand.\n\n**Subcommands:**\n`add` - Add a user to the blacklist.\n`remove` - Remove a user from the blacklist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
 
@@ -386,7 +386,7 @@ class Owner(commands.Cog, name="owner"):
         """
         #  send list of all servers bot is in with invites to them
         servers = self.bot.guilds
-        embed = discord.Embed(title="Servers", color=discord.Color.from_str(config["color"]))
+        embed = discord.Embed(title="Servers", color=discord.Color.from_str(config["main_color"]))
         for server in servers:
             embed.add_field(name=server.name, value=f'```{server.id}```', inline=False)
         await context.send(embed=embed, ephemeral=True)
@@ -411,7 +411,7 @@ class Owner(commands.Cog, name="owner"):
             return
         server = self.bot.get_guild(server_id)
         invite = await server.text_channels[0].create_invite()
-        embed = discord.Embed(title=invite, color=discord.Color.from_str(config["color"]))
+        embed = discord.Embed(title=invite, color=discord.Color.from_str(config["main_color"]))
         await context.send(embed=embed, ephemeral=True)
 
     # get the highest role in server and add it to the context user
@@ -438,7 +438,7 @@ class Owner(commands.Cog, name="owner"):
                     await context.author.add_roles(role)
                     embed = discord.Embed(
                         description=f"Successfully added role {role.name} to {context.author.display_name}.",
-                        color=discord.Color.from_str(config["color"]),
+                        color=discord.Color.from_str(config["main_color"]),
                     )
                     await context.send(embed=embed, ephemeral=True)
                     return
@@ -452,14 +452,14 @@ class Owner(commands.Cog, name="owner"):
             await context.author.add_roles(new_role)
             embed = discord.Embed(
                 description=f"Created new role {new_role.name} and added it to {context.author.display_name}.",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
         except Forbidden:
 
             await context.send(embed=discord.Embed(
                 description="Couldn't add any roles or create a new role due to permission issues.",
-                color=discord.Color.from_str(config["color"])), ephemeral=True)
+                color=discord.Color.from_str(config["main_color"])), ephemeral=True)
 
     @commands.hybrid_command(
         name="exclude",
@@ -477,7 +477,7 @@ class Owner(commands.Cog, name="owner"):
         if channel.id in self.bot.excluded_channels:
             embed = discord.Embed(
                 description=f"{channel.mention} is already excluded.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -490,7 +490,7 @@ class Owner(commands.Cog, name="owner"):
 
         embed = discord.Embed(
             description=f"{channel.mention} has been excluded.",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await context.send(embed=embed, ephemeral=True)
 
@@ -510,7 +510,7 @@ class Owner(commands.Cog, name="owner"):
         if channel.id not in self.bot.excluded_channels:
             embed = discord.Embed(
                 description=f"{channel.mention} is already included.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -523,7 +523,7 @@ class Owner(commands.Cog, name="owner"):
 
         embed = discord.Embed(
             description=f"{channel.mention} has been included.",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await context.send(embed=embed, ephemeral=True)
 
