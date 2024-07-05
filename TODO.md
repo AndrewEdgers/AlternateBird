@@ -17,5 +17,5 @@
 - [ ] Code cleanup 🥲
 - [ ] Test coverage
 - [ ] Resolve an issue with editing a name of the team not being updated in the players database
-- [ ] Add ability to create tryout/ringer invites for multiple people in one invite
+- [X] Add ability to create tryout/ringer invites for multiple people in one invite
 - [ ] Change team rosters from embeds to messages

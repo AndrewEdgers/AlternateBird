@@ -213,7 +213,7 @@ class Team(commands.Cog, name="team"):
                             "`list` - List all team.\n`create` - Create a new team.\n"
                             "`edit` - Edit an existing team.\n`delete` - Delete an existing team.\n"
                             "`status` - Change trialing status of a team.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
 
@@ -232,7 +232,7 @@ class Team(commands.Cog, name="team"):
         teams = await self.bot.database.get_teams()
         embed = discord.Embed(
             title="Alternate eSports Teams",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
 
         for team in teams:
@@ -262,7 +262,7 @@ class Team(commands.Cog, name="team"):
         if await self.bot.database.get_team(name):
             embed = discord.Embed(
                 title=f"Team {name} already exists.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -332,7 +332,7 @@ class Team(commands.Cog, name="team"):
         if not existing_team:
             embed = discord.Embed(
                 title=f"Team {name} doesn't exist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -396,7 +396,7 @@ class Team(commands.Cog, name="team"):
         if not existing_team:
             embed = discord.Embed(
                 title=f"Team {name} doesn't exist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -417,13 +417,13 @@ class Team(commands.Cog, name="team"):
 
             embed = discord.Embed(
                 title=f'Team {name} deleted.',
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             await context.send(embed=embed, ephemeral=True, delete_after=5)
         else:
             embed = discord.Embed(
                 title=f'Deletion cancelled.',
-                color=0xE02B2B
+                color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed, ephemeral=True, delete_after=5)
 
@@ -445,7 +445,7 @@ class Team(commands.Cog, name="team"):
             if await methods.team_affiliation(context.author) == "Team does not exist.":
                 embed = discord.Embed(
                     title=f"Team {team} doesn't exist.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
@@ -453,7 +453,7 @@ class Team(commands.Cog, name="team"):
                 embed = discord.Embed(
                     title="Please specify your team.",
                     description="You are affiliated with multiple teams.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
@@ -466,7 +466,7 @@ class Team(commands.Cog, name="team"):
         if not existing_team:
             embed = discord.Embed(
                 title=f"Team {team} doesn't exist.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
             return
@@ -478,20 +478,20 @@ class Team(commands.Cog, name="team"):
 
         embed = discord.Embed(
             title=f'Team {team} is now {"trialing" if new_status else "not trialing"}.',
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         await context.send(embed=embed, ephemeral=True, delete_after=5)
 
         if await self.update_roster(context, team):
             embed = discord.Embed(
                 title="Rosters updated.",
-                color=discord.Color.from_str(config["color"])
+                color=discord.Color.from_str(config["main_color"])
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
         else:
             embed = discord.Embed(
                 title="Something went wrong",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.interaction.followup.send(embed=embed, ephemeral=True)
 

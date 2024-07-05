@@ -280,12 +280,12 @@ class DiscordBot(commands.Bot):
             hours = hours % 24
             embed = discord.Embed(
                 description=f"**Please slow down** - You can use this command again in {f'{round(hours)} hours' if round(hours) > 0 else ''} {f'{round(minutes)} minutes' if round(minutes) > 0 else ''} {f'{round(seconds)} seconds' if round(seconds) > 0 else ''}.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
         elif isinstance(error, commands.NotOwner):
             embed = discord.Embed(
-                description="You are not the owner of the bot!", color=0xE02B2B
+                description="You are not the owner of the bot!", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed)
             if context.guild:
@@ -302,7 +302,7 @@ class DiscordBot(commands.Bot):
                 description="You are missing the permission(s) `"
                             + ", ".join(error.missing_permissions)
                             + "` to execute this command!",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
         elif isinstance(error, commands.BotMissingPermissions):
@@ -310,7 +310,7 @@ class DiscordBot(commands.Bot):
                 description="I am missing the permission(s) `"
                             + ", ".join(error.missing_permissions)
                             + "` to fully perform this command!",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
         elif isinstance(error, commands.MissingRequiredArgument):
@@ -319,7 +319,7 @@ class DiscordBot(commands.Bot):
                 # We need to capitalize because the command arguments have no capital letter in the code and they are
                 # the first word in the error message.
                 description=str(error).capitalize(),
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
         else:

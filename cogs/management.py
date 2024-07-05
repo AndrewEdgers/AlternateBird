@@ -55,14 +55,14 @@ class Management(commands.Cog, name="management"):
         )
         if member.guild_permissions.administrator:
             embed = discord.Embed(
-                description="User has administrator permissions.", color=0xE02B2B
+                description="User has administrator permissions.", color=discord.Color.from_str(config["error_color"])
             )
             await context.send(embed=embed)
         else:
             try:
                 embed = discord.Embed(
                     description=f"**{member}** was kicked by **{context.author}**!",
-                    color=discord.Color.from_str(config["color"]),
+                    color=discord.Color.from_str(config["main_color"]),
                 )
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -77,7 +77,7 @@ class Management(commands.Cog, name="management"):
             except:
                 embed = discord.Embed(
                     description="An error occurred while trying to kick the user. Make sure my role is above the role of the user you want to kick.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed)
 
@@ -108,13 +108,13 @@ class Management(commands.Cog, name="management"):
             await member.edit(nick=nickname)
             embed = discord.Embed(
                 description=f"**{member}'s** new nickname is **{nickname}**!",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             await context.send(embed=embed)
         except:
             embed = discord.Embed(
                 description="An error occurred while trying to change the nickname of the user. Make sure my role is above the role of the user you want to change the nickname.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
 
@@ -144,13 +144,13 @@ class Management(commands.Cog, name="management"):
         try:
             if member.guild_permissions.administrator:
                 embed = discord.Embed(
-                    description="User has administrator permissions.", color=0xE02B2B
+                    description="User has administrator permissions.", color=discord.Color.from_str(config["error_color"])
                 )
                 await context.send(embed=embed)
             else:
                 embed = discord.Embed(
                     description=f"**{member}** was banned by **{context.author}**!",
-                    color=discord.Color.from_str(config["color"]),
+                    color=discord.Color.from_str(config["main_color"]),
                 )
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -166,7 +166,7 @@ class Management(commands.Cog, name="management"):
             embed = discord.Embed(
                 title="Error!",
                 description="An error occurred while trying to ban the user. Make sure my role is above the role of the user you want to ban.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
 
@@ -184,7 +184,7 @@ class Management(commands.Cog, name="management"):
         if context.invoked_subcommand is None:
             embed = discord.Embed(
                 description="Please specify a subcommand.\n\n**Subcommands:**\n`add` - Add a warning to a user.\n`remove` - Remove a warning from a user.\n`list` - List all warnings of a user.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
 
@@ -215,7 +215,7 @@ class Management(commands.Cog, name="management"):
         )
         embed = discord.Embed(
             description=f"**{member}** was warned by **{context.author}**!\nTotal warns for this user: {total}",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         embed.add_field(name="Reason:", value=reason)
         await context.send(embed=embed)
@@ -254,7 +254,7 @@ class Management(commands.Cog, name="management"):
         total = await self.bot.database.remove_warn(warn_id, user.id, context.guild.id)
         embed = discord.Embed(
             description=f"I've removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total}",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await context.send(embed=embed)
 
@@ -272,7 +272,7 @@ class Management(commands.Cog, name="management"):
         :param user: The user you want to get the warnings of.
         """
         warnings_list = await self.bot.database.get_warnings(user.id, context.guild.id)
-        embed = discord.Embed(title=f"Warnings of {user}", color=discord.Color.from_str(config["color"]))
+        embed = discord.Embed(title=f"Warnings of {user}", color=discord.Color.from_str(config["main_color"]))
         description = ""
         if len(warnings_list) == 0:
             description = "This user has no warnings."
@@ -302,7 +302,7 @@ class Management(commands.Cog, name="management"):
         purged_messages = await context.channel.purge(limit=amount + 1)
         embed = discord.Embed(
             description=f"**{context.author}** cleared **{len(purged_messages) - 1}** messages!",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await context.channel.send(embed=embed)
 
@@ -333,14 +333,14 @@ class Management(commands.Cog, name="management"):
             )
             embed = discord.Embed(
                 description=f"**{user}** (ID: {user_id}) was banned by **{context.author}**!",
-                color=discord.Color.from_str(config["color"]),
+                color=discord.Color.from_str(config["main_color"]),
             )
             embed.add_field(name="Reason:", value=reason)
             await context.send(embed=embed)
         except Exception:
             embed = discord.Embed(
                 description="An error occurred while trying to ban the user. Make sure ID is an existing ID that belongs to a user.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed)
 
@@ -412,13 +412,23 @@ class Management(commands.Cog, name="management"):
         else:
             caption = ping
 
+        embed = discord.Embed(
+            description=f"Sending tweet: {link}...",
+            color=discord.Color.from_str(config["warning_color"]),
+        )
+        reply = await context.send(embed=embed, ephemeral=True)
+
         try:
             await twitter(link, caption)
             logger.info(f'Tweet sent successfully: {link}')
-            await context.send(f'Tweet sent successfully: {link}')
+            await reply.edit(
+                embed=discord.Embed(description=f"Tweet sent successfully: {link}",
+                                    color=discord.Color.from_str(config["main_color"])))
         except Exception as e:
             logger.error(f'Failed to send tweet: {e}')
-            await context.send(f'Failed to send tweet: {e}')
+            await reply.edit(
+                embed=discord.Embed(description=f"Failed to send tweet: {e}",
+                                    color=discord.Color.from_str(config["error_color"])))
 
 
 async def setup(bot) -> None:
