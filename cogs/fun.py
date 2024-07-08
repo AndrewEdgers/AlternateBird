@@ -21,14 +21,14 @@ class Choice(discord.ui.View):
 
     @discord.ui.button(label="Heads", style=discord.ButtonStyle.blurple)
     async def confirm(
-        self, button: discord.ui.Button, interaction: discord.Interaction
+            self, button: discord.ui.Button, interaction: discord.Interaction
     ) -> None:
         self.value = "heads"
         self.stop()
 
     @discord.ui.button(label="Tails", style=discord.ButtonStyle.blurple)
     async def cancel(
-        self, button: discord.ui.Button, interaction: discord.Interaction
+            self, button: discord.ui.Button, interaction: discord.Interaction
     ) -> None:
         self.value = "tails"
         self.stop()
@@ -74,13 +74,13 @@ class RockPaperScissors(discord.ui.Select):
         winner = (3 + user_choice_index - bot_choice_index) % 3
         if winner == 0:
             result_embed.description = f"**That's a draw!**\nYou've chosen {user_choice} and I've chosen {bot_choice}."
-            result_embed.colour = 0xF59E42
+            result_embed.colour = discord.Color.from_str(config["warning_color"])
         elif winner == 1:
             result_embed.description = f"**You won!**\nYou've chosen {user_choice} and I've chosen {bot_choice}."
-            result_embed.colour = 0x57F287
+            result_embed.colour = discord.Color.from_str(config["success_color"])
         else:
             result_embed.description = f"**You lost!**\nYou've chosen {user_choice} and I've chosen {bot_choice}."
-            result_embed.colour = 0xE02B2B
+            result_embed.colour = discord.Color.from_str(config["error_color"])
 
         await interaction.response.edit_message(
             embed=result_embed, content=None, view=None
@@ -97,6 +97,7 @@ class Fun(commands.Cog, name="fun"):
     """
     Fun commands. 🎉
     """
+
     def __init__(self, bot) -> None:
         self.bot = bot
 
@@ -107,10 +108,11 @@ class Fun(commands.Cog, name="fun"):
 
         :param context: The hybrid command context.
         """
-        # This will prevent your bot from stopping everything when doing a web request - see: https://discordpy.readthedocs.io/en/stable/faq.html#how-do-i-make-a-web-request
+        # This will prevent your bot from stopping everything when doing a web request - see:
+        # https://discordpy.readthedocs.io/en/stable/faq.html#how-do-i-make-a-web-request
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://uselessfacts.jsph.pl/random.json?language=en"
+                    "https://uselessfacts.jsph.pl/random.json?language=en"
             ) as request:
                 if request.status == 200:
                     data = await request.json()
@@ -119,7 +121,7 @@ class Fun(commands.Cog, name="fun"):
                     embed = discord.Embed(
                         title="Error!",
                         description="There is something wrong with the API, please try again later",
-                        color=0xE02B2B,
+                        color=discord.Color.from_str(config["error_color"]),
                     )
                 await context.send(embed=embed)
 
@@ -145,7 +147,7 @@ class Fun(commands.Cog, name="fun"):
         else:
             embed = discord.Embed(
                 description=f"Woops! You guessed `{buttons.value}` and I flipped the coin to `{result}`, better luck next time!",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
         await message.edit(embed=embed, view=None, content=None)
 

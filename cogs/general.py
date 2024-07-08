@@ -5,26 +5,17 @@ Description:
 
 Version: 6.1.0
 """
-import datetime
-import json
-import os
-import sys
-
 import platform
-import random
 
-import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ui import View, Select
 
-if not os.path.isfile(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
-        config = json.load(file)
+from helpers import methods
+
+config = methods.load_config()
 
 
 class HelpSelect(Select):
@@ -49,7 +40,7 @@ class HelpSelect(Select):
         embed = discord.Embed(
             title=f"<:Lightteal:1082786810662498304> Help for {cog_name.capitalize()} <:Lightteal:1082786810662498304>",
             description="**List of available commands:**",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
 
         for command in cog.get_commands():
@@ -76,7 +67,7 @@ class HelpSelect(Select):
                     inline=False
                 )
 
-        await interaction.response.send_message(embed=embed, ephemeral=True, delete_after=25)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class General(commands.Cog, name="general"):
@@ -113,7 +104,7 @@ class General(commands.Cog, name="general"):
         embed = discord.Embed(
             title="Message without spoilers",
             description=message.content.replace("||", ""),
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         if spoiler_attachment is not None:
             embed.set_image(url=attachment.url)
@@ -131,7 +122,7 @@ class General(commands.Cog, name="general"):
         """
         embed = discord.Embed(
             description=f"The ID of {user.mention} is `{user.id}`.",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -142,7 +133,7 @@ class General(commands.Cog, name="general"):
         embed = discord.Embed(
             title="Help",
             description="**Select a category to get more information.**",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
 
         for cog_name, cog in self.bot.cogs.items():
@@ -158,7 +149,7 @@ class General(commands.Cog, name="general"):
                 )
 
         view = View().add_item(HelpSelect(self.bot))
-        await context.send(embed=embed, view=view, delete_after=90)
+        await context.send(embed=embed, view=view, delete_after=120)
 
     # @commands.hybrid_command(
     #     name="help", description="List all commands the bot has loaded."
@@ -168,7 +159,7 @@ class General(commands.Cog, name="general"):
     #     embed = discord.Embed(
     #         title="Help",
     #         description="**List of available commands:**",
-    #         color=discord.Color.from_str(config["color"]),
+    #         color=discord.Color.from_str(config["main_color"]),
     #     )
     #     # embed.set_thumbnail(url="https://alt-esports.x3.pm/i/8d0lk.gif")
     #
@@ -219,7 +210,7 @@ class General(commands.Cog, name="general"):
         """
         embed = discord.Embed(
             description="Used [Krypton's](https://krypton.ninja) template",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         embed.set_author(name="Bot Information")
         embed.add_field(name="Owner:", value="edgers", inline=True)
@@ -252,7 +243,7 @@ class General(commands.Cog, name="general"):
 
         embed = discord.Embed(
             title="**Server Name:**", description=f"{context.guild} <:Alternate:1053103469172625499>",
-            color=discord.Color.from_str(config["color"])
+            color=discord.Color.from_str(config["main_color"])
         )
         if context.guild.icon is not None:
             embed.set_thumbnail(url=context.guild.icon.url)
@@ -278,7 +269,7 @@ class General(commands.Cog, name="general"):
         embed = discord.Embed(
             title="🏓 Pong!",
             description=f"The bot latency is {round(self.bot.latency * 1000)}ms.",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await context.send(embed=embed, ephemeral=True)
 

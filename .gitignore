@@ -150,3 +150,6 @@ discord.log
 discloud.config
 /.vscode/
 /bot.zip
+
+# Database file
+database.db
