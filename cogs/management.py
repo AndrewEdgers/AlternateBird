@@ -413,7 +413,7 @@ class Management(commands.Cog, name="management"):
             caption = ping
 
         embed = discord.Embed(
-            description=f"Sending tweet: {link}...",
+            title=f"Sending tweet: {link}...",
             color=discord.Color.from_str(config["warning_color"]),
         )
         reply = await context.send(embed=embed, ephemeral=True)
@@ -422,12 +422,12 @@ class Management(commands.Cog, name="management"):
             await twitter(link, caption)
             logger.info(f'Tweet sent successfully: {link}')
             await reply.edit(
-                embed=discord.Embed(description=f"Tweet sent successfully: {link}",
+                embed=discord.Embed(title=f"Tweet sent successfully: {link}",
                                     color=discord.Color.from_str(config["main_color"])))
         except Exception as e:
             logger.error(f'Failed to send tweet: {e}')
             await reply.edit(
-                embed=discord.Embed(description=f"Failed to send tweet: {e}",
+                embed=discord.Embed(title=f"Failed to send tweet: {e}",
                                     color=discord.Color.from_str(config["error_color"])))
 
 
