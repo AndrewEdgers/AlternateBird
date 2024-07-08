@@ -65,7 +65,7 @@ class Coaching(commands.Cog, name="coaching"):
         name="thread",
         description="Manage 1 on 1 coaching threads.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def thread(self, context: Context) -> None:
         """
         The main command for the coaching thread management.
@@ -77,7 +77,7 @@ class Coaching(commands.Cog, name="coaching"):
                 description="You need to specify a subcommand.\n\n**Subcommands:**\n"
                             "`create` - Create new thread(s).\n`list` - Lists all active threads.\n"
                             "`close` - Close inactive threads.\n`update` - Update the threads.",
-                color=0xE02B2B,
+                color=discord.Color.from_str(config["error_color"]),
             )
             await context.send(embed=embed, ephemeral=True)
 
@@ -85,7 +85,7 @@ class Coaching(commands.Cog, name="coaching"):
         name="create",
         description="Create a new thread. Leave the member field empty to create a thread for the whole team.",
     )
-    @commands.has_any_role("Operation Manager", "AP", "Managers", "OW | Coach", "Server Staff", "Technician Team")
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach", "Server Staff", "Technician Team")
     async def create(self, context: Context, member: discord.Member = None, team: str = None) -> None:
         """
         Create a new thread. Leave the member field empty to create a thread for the whole team.
@@ -100,7 +100,7 @@ class Coaching(commands.Cog, name="coaching"):
             if await methods.team_affiliation(context.author) == "Team does not exist.":
                 embed = discord.Embed(
                     title=f"Team {team} doesn't exist.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
@@ -108,7 +108,7 @@ class Coaching(commands.Cog, name="coaching"):
                 embed = discord.Embed(
                     title="Please specify your team.",
                     description="You are affiliated with multiple teams.",
-                    color=0xE02B2B,
+                    color=discord.Color.from_str(config["error_color"]),
                 )
                 await context.send(embed=embed, ephemeral=True)
                 return
@@ -159,7 +159,7 @@ class Coaching(commands.Cog, name="coaching"):
 
         embed = discord.Embed(
             title="Thread(s) created successfully.",
-            color=discord.Color.from_str(config["color"]),
+            color=discord.Color.from_str(config["main_color"]),
         )
         await context.send(embed=embed, ephemeral=True)
 
