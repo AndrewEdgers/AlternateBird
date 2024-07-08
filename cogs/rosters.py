@@ -199,18 +199,21 @@ class Roster(commands.Cog, name="roster"):
         # Finally, send the message as a follow-up to the deferred interaction
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    async def update_roster(self, context: Context, team: str) -> bool:
-        team_data = await self.bot.database.get_team(team)
-        color = team_data[1]
+    async def update_roster(self, context: Context, team: str) -> bool | Exception:
+        try:
+            team_data = await self.bot.database.get_team(team)
+            color = team_data[1]
 
-        players = await self.bot.database.get_players(team)
+            players = await self.bot.database.get_players(team)
 
-        team_status = await self.bot.database.get_team_status(team)
+            team_status = await self.bot.database.get_team_status(team)
 
-        embeds = self.get_players_embed(context, team_status, color, players)
+            embeds = self.get_players_embed(context, team_status, color, players)
 
-        await self.fetch_and_update(self.bot, team, embeds)
-        return True
+            await self.fetch_and_update(self.bot, team, embeds)
+            return True
+        except Exception as e:
+            return e
 
     def get_coaches_embed(self, context: Context):
         head_coaches = []
@@ -700,114 +703,130 @@ class Roster(commands.Cog, name="roster"):
         :param team: The team to sign the player to.
         :param role: The role of the player to sign.
         """
-        team = await team_check(team, context)
+        try:
+            await context.interaction.response.defer(ephemeral=True)
+        except AttributeError:
+            await context.send("Error: Interaction not found", ephemeral=True)
+            return
 
-        await context.interaction.response.defer(ephemeral=True)
-        player_id = member.id
-        name = member.display_name
+        try:
+            team = await team_check(team, context)
 
-        guild = context.guild
-        ow_role = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Team")
-        ow_team = discord.utils.get(guild.roles, name="Overwatch Team")
-        team_manager = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Manager")
-        manager = discord.utils.get(guild.roles, name="Managers")
-        team_coach = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Coach")
-        coaches = discord.utils.get(guild.roles, name="OW | Coach")
+            player_id = member.id
+            name = member.display_name
 
-        ow_tryout = discord.utils.get(member.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Tryout")
-        ow_ringer = discord.utils.get(member.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Ringer")
-        trial_coach = discord.utils.get(member.roles, name="[Trial] Coach")
+            guild = context.guild
+            ow_role = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Team")
+            ow_team = discord.utils.get(guild.roles, name="Overwatch Team")
+            team_manager = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Manager")
+            manager = discord.utils.get(guild.roles, name="Managers")
+            team_coach = discord.utils.get(guild.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Coach")
+            coaches = discord.utils.get(guild.roles, name="OW | Coach")
 
-        roles_to_remove = []
-        if ow_tryout:
-            roles_to_remove.append(ow_tryout)
-        if ow_ringer:
-            roles_to_remove.append(ow_ringer)
-        if trial_coach:
-            roles_to_remove.append(trial_coach)
+            ow_tryout = discord.utils.get(member.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Tryout")
+            ow_ringer = discord.utils.get(member.roles, name=f"OW | {team.replace('Alternate ', '').strip()} Ringer")
+            trial_coach = discord.utils.get(member.roles, name="[Trial] Coach")
 
-        roles_to_add = []
-        if role == "Manager":
-            roles_to_add.append(team_manager)
-            roles_to_add.append(manager)
-        elif role == "Head Coach" or role == "Assistant Coach":
-            roles_to_add.append(team_coach)
-            roles_to_add.append(coaches)
-        else:
-            if role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS", "Main Support", "Flex Support"]:
+            roles_to_remove = []
+            if ow_tryout:
+                roles_to_remove.append(ow_tryout)
+            if ow_ringer:
+                roles_to_remove.append(ow_ringer)
+            if trial_coach:
+                roles_to_remove.append(trial_coach)
+
+            roles_to_add = []
+            if role == "Manager":
+                roles_to_add.append(team_manager)
+                roles_to_add.append(manager)
                 roles_to_add.append(ow_role)
-                roles_to_add.append(ow_team)
+            elif role == "Head Coach" or role == "Assistant Coach":
+                roles_to_add.append(team_coach)
+                roles_to_add.append(coaches)
+                roles_to_add.append(ow_role)
+            else:
+                if role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS", "Main Support", "Flex Support", "Substitute"]:
+                    roles_to_add.append(ow_role)
+                    roles_to_add.append(ow_team)
 
-        # Fetch player's existing record from the database
-        existing_player = await self.bot.database.get_player(player_id)
-        if existing_player:
-            existing_team, existing_role = existing_player[1], existing_player[2]
-            # Check the conditions
-            if existing_team == team and existing_role == role:
-                embed = discord.Embed(
-                    title=f"Player {name} already in {team} as {role}.",
-                    color=discord.Color.from_str(config["error_color"]),
-                )
-                await context.interaction.followup.send(embed=embed, ephemeral=True)
-                return
-            elif existing_team != team or (
-                    existing_team == team and existing_role not in ["Main Tank", "Off Tank", "Hitscan DPS",
-                                                                    "Flex DPS", "Main Support", "Flex Support"]):
+            # Fetch player's existing record from the database
+            existing_player = await self.bot.database.get_player(player_id)
+            if existing_player:
+                existing_team, existing_role = existing_player[1], existing_player[2]
+                # Check the conditions
+                if existing_team == team and existing_role == role:
+                    embed = discord.Embed(
+                        title=f"Player {name} already in {team} as {role}.",
+                        color=discord.Color.from_str(config["error_color"]),
+                    )
+                    await context.interaction.followup.send(embed=embed, ephemeral=True)
+                    return
+                elif existing_team != team or (
+                        existing_team == team and existing_role not in ["Main Tank", "Off Tank", "Hitscan DPS",
+                                                                        "Flex DPS", "Main Support", "Flex Support"]):
+                    await self.bot.database.add_player(player_id, team, role)
+                    embed = discord.Embed(
+                        title=f'Signed player {name} for {team} as {role}.',
+                        color=discord.Color.from_str(config["main_color"])
+                    )
+                    if roles_to_remove:
+                        await member.remove_roles(*roles_to_remove)
+                    if roles_to_add:
+                        await member.add_roles(*roles_to_add)
+                    await context.interaction.followup.send(embed=embed, ephemeral=True)
+                elif existing_team == team and existing_role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS",
+                                                                 "Main Support", "Flex Support"]:
+                    embed = discord.Embed(
+                        title=f"Player {name} already in {team} as {existing_role}.",
+                        color=discord.Color.from_str(config["error_color"]),
+                    )
+                    await context.interaction.followup.send(embed=embed, ephemeral=True)
+                    return
+
+            else:
+                # Player doesn't exist, so add them to the database
+                if not await self.bot.database.get_team(team):
+                    embed = discord.Embed(
+                        title=f"Team {team} doesn't exist.",
+                        color=discord.Color.from_str(config["error_color"]),
+                    )
+                    await context.interaction.followup.send(embed=embed, ephemeral=True)
+                    return
                 await self.bot.database.add_player(player_id, team, role)
                 embed = discord.Embed(
                     title=f'Signed player {name} for {team} as {role}.',
                     color=discord.Color.from_str(config["main_color"])
                 )
+                if ow_tryout:
+                    roles_to_remove.append(ow_tryout)
+                if ow_ringer:
+                    roles_to_remove.append(ow_ringer)
                 if roles_to_remove:
                     await member.remove_roles(*roles_to_remove)
                 if roles_to_add:
                     await member.add_roles(*roles_to_add)
                 await context.interaction.followup.send(embed=embed, ephemeral=True)
-            elif existing_team == team and existing_role in ["Main Tank", "Off Tank", "Hitscan DPS", "Flex DPS",
-                                                             "Main Support", "Flex Support"]:
-                embed = discord.Embed(
-                    title=f"Player {name} already in {team} as {existing_role}.",
-                    color=discord.Color.from_str(config["error_color"]),
-                )
-                await context.interaction.followup.send(embed=embed, ephemeral=True)
-                return
 
-        else:
-            # Player doesn't exist, so add them to the database
-            if not await self.bot.database.get_team(team):
-                embed = discord.Embed(
-                    title=f"Team {team} doesn't exist.",
-                    color=discord.Color.from_str(config["error_color"]),
-                )
-                await context.interaction.followup.send(embed=embed, ephemeral=True)
-                return
-            await self.bot.database.add_player(player_id, team, role)
+                if await self.update_roster(context, team):
+                    embed = discord.Embed(
+                        title="Rosters updated.",
+                        color=discord.Color.from_str(config["main_color"])
+                    )
+                    await context.interaction.followup.send(embed=embed, ephemeral=True)
+                else:
+                    e = await self.update_roster(context, team)
+                    embed = discord.Embed(
+                        title="Something went wrong: " + str(e),
+                        color=discord.Color.from_str(config["error_color"]),
+                    )
+                    await context.interaction.followup.send(embed=embed, ephemeral=True)
+        except Exception as e:
             embed = discord.Embed(
-                title=f'Signed player {name} for {team} as {role}.',
-                color=discord.Color.from_str(config["main_color"])
+                title="An error occurred",
+                description=str(e),
+                color=discord.Color.from_str(config["error_color"]),
             )
-            if ow_tryout:
-                roles_to_remove.append(ow_tryout)
-            if ow_ringer:
-                roles_to_remove.append(ow_ringer)
-            if roles_to_remove:
-                await member.remove_roles(*roles_to_remove)
-            if roles_to_add:
-                await member.add_roles(*roles_to_add)
             await context.interaction.followup.send(embed=embed, ephemeral=True)
-
-            if await self.update_roster(context, team):
-                embed = discord.Embed(
-                    title="Rosters updated.",
-                    color=discord.Color.from_str(config["main_color"])
-                )
-                await context.interaction.followup.send(embed=embed, ephemeral=True)
-            else:
-                embed = discord.Embed(
-                    title="Something went wrong",
-                    color=discord.Color.from_str(config["error_color"]),
-                )
-                await context.interaction.followup.send(embed=embed, ephemeral=True)
 
     @player.command(
         base="player",
