@@ -971,7 +971,7 @@ class Roster(commands.Cog, name="roster"):
         name="tryout",
         description="Creates a tryout invite for the specified team.",
     )
-    @commands.check_any(commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach"))
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach")
     async def tryout(self, context: Context, amount: int = 1, member: discord.Member = None, team: str = None) -> None:
         """
         Creates a tryout invite for the specified team.
@@ -1048,7 +1048,7 @@ class Roster(commands.Cog, name="roster"):
         name="ringer",
         description="Creates a tryout invite for the specified team.",
     )
-    @commands.check_any(commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach"))
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach")
     async def ringer(self, context: Context, amount: int = 1, member: discord.Member = None, team: str = None) -> None:
         """
         Creates a ringer invite for the specified team.
@@ -1125,7 +1125,7 @@ class Roster(commands.Cog, name="roster"):
         name="cut",
         description="Cuts a tryout or ringer from the specified team."
     )
-    @commands.check_any(commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach"))
+    @commands.has_any_role("Owner", "CTO", "Managers", "OW | Coach")
     async def cut(self, context: Context, member: discord.Member, team: str = None) -> None:
         """
         Cuts a tryout from the specified team.
